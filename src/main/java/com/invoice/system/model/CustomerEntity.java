@@ -2,12 +2,12 @@ package com.invoice.system.model;
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
-
-@Setter
-@Getter
 @Entity
+@Table(name = "Customer")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,8 +17,12 @@ public class CustomerEntity {
     private Long id;
     @Column(name = "customerName")
     private String customerName;
+    @Email(message = "Enter Valid Mail")
     private String email;
+    @Pattern(regexp = "[0-9]{10}", message = "Phone number must be exactly 10 digits")
     private String phone;
+
+    @Pattern(regexp = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$", message = "Invalid GST number")
     @Column(name = "gstNumber")
     private String gstNumber;
     @Column(name = "billingAddress")

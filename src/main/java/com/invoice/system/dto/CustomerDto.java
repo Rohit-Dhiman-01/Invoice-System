@@ -7,6 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Data
 public class CustomerDto {
     private String customerName;
     private String email;

@@ -1,5 +1,6 @@
 package com.invoice.system.service;
 
+import com.invoice.system.config.exception.VendorNotFoundException;
 import com.invoice.system.dto.CustomerDto;
 import com.invoice.system.model.CustomerEntity;
 import com.invoice.system.repository.CustomerRepository;
@@ -32,7 +33,7 @@ public class CustomerService {
     public CustomerEntity getCustomerByID(Long id){
         Optional<CustomerEntity> optionalCustomerEntity = customerRepository.findById(id);
         if (optionalCustomerEntity.isEmpty()) {
-            throw new RuntimeException("Customer not found");
+            throw new VendorNotFoundException("Customer Not Found");
         }
         return optionalCustomerEntity.get();
     }

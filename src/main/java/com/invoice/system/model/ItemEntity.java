@@ -31,4 +31,8 @@ public class ItemEntity {
     @Column(name = "total")
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Double total;
+
+    @ManyToOne
+    @JoinColumn(name = "quote_id")
+    private QuoteEntity quote;
 }

@@ -18,6 +18,8 @@ public class VendorEntity {
     @Email(message = "Enter Valid Mail")
     @Column(name = "email")
     private String email;
+
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number Not Valid")
     @Column(name = "phone")
     private String phone;
 

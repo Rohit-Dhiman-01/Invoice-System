@@ -32,7 +32,7 @@ public class ItemEntity {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Double total;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "quote_id")
     private QuoteEntity quote;
 }

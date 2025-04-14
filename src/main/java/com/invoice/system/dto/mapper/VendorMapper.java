@@ -6,6 +6,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface VendorMapper {
-    VendorEntity toVendorEntity(VendorDto vendorDto);
-    VendorDto toVendorDto(VendorEntity vendorEntity);
+  VendorEntity toVendorEntity(VendorDto vendorDto);
+
+  VendorDto toVendorDto(VendorEntity vendorEntity);
 }

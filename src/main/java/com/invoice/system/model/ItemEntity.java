@@ -10,31 +10,35 @@ import lombok.Data;
 @Table(name = "Item")
 @Data
 public class ItemEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(name = "itemName")
-    private String itemName;
-    @Column(name = "description")
-    private String description;
-    @Column(name = "quantity")
-    private Integer quantity;
-    @Column(name = "rate")
-    private Double rate;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "hsnCode")
-    @Pattern(regexp = "[0-9]{8}", message = "Invalid HSN code")
-    private String hsnCode;
+  @Column(name = "itemName")
+  private String itemName;
 
-    @Column(name = "taxPercent")
-    private Double taxPercent;
+  @Column(name = "description")
+  private String description;
 
-    @Column(name = "total")
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Double total;
+  @Column(name = "quantity")
+  private Integer quantity;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "quote_id")
-    @JsonIgnore
-    private QuoteEntity quote;
+  @Column(name = "rate")
+  private Double rate;
+
+  @Column(name = "hsnCode")
+  @Pattern(regexp = "[0-9]{8}", message = "Invalid HSN code")
+  private String hsnCode;
+
+  @Column(name = "taxPercent")
+  private Double taxPercent;
+
+  @Column(name = "total")
+  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+  private Double total;
+
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "quote_id")
+  @JsonIgnore
+  private QuoteEntity quote;
 }

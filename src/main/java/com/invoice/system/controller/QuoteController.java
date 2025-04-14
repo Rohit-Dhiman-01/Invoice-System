@@ -20,19 +20,23 @@ public class QuoteController {
     public ResponseEntity<QuoteEntity> createQuote(
             @RequestBody QuoteDto quoteDto,
             @PathVariable Long customerId
-            ){
-        return  new ResponseEntity<>(quoteServiceIMPL.createVendor(quoteDto,customerId), HttpStatus.CREATED);
+    ) {
+        return new ResponseEntity<>(quoteServiceIMPL.createVendor(quoteDto, customerId), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<QuoteEntity>> getAllQuote(){
-        return new ResponseEntity<>(quoteServiceIMPL.getAllQuote(),HttpStatus.OK);
+    public ResponseEntity<List<QuoteEntity>> getAllQuote(
+            @RequestParam(value = "customerId", required = false) Long customerId
+    ) {
+        return new ResponseEntity<>(quoteServiceIMPL.getAllQuote(customerId), HttpStatus.OK);
     }
-    @GetMapping("{id}")
+
+    @GetMapping("{quoteId}")
     public ResponseEntity<QuoteEntity> getQuoteWithID(
-            @PathVariable Long id
-    ){
-        return new ResponseEntity<>(quoteServiceIMPL.getQuoteWithID(id),HttpStatus.OK);
+            @PathVariable Long quoteId,
+            @PathVariable Long customerId
+    ) {
+        return new ResponseEntity<>(quoteServiceIMPL.getQuoteWithID(quoteId, customerId), HttpStatus.OK);
     }
 
 }

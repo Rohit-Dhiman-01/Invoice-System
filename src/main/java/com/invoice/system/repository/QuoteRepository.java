@@ -8,10 +8,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface QuoteRepository extends JpaRepository<QuoteEntity,Long> {
-    @Query("SELECT DISTINCT q FROM QuoteEntity q JOIN FETCH q.items")
-    List<QuoteEntity> findAllQuote();
+public interface QuoteRepository extends JpaRepository<QuoteEntity, Long> {
+    @Query("SELECT DISTINCT q FROM QuoteEntity q JOIN FETCH q.items WHERE (:customerId IS NULL OR q.customer.id = :customerId)")
+    List<QuoteEntity> findAllQuote(@Param("customerId") Long customerId);
 
-    @Query("SELECT DISTINCT q FROM QuoteEntity q JOIN FETCH q.items WHERE q.id = :id")
-    Optional<QuoteEntity> findAllQuote(@Param("id")Long Id);
+    @Query("SELECT DISTINCT q FROM QuoteEntity q JOIN FETCH q.items WHERE q.id = :quoteId AND q.customer.id = :customerId")
+    Optional<QuoteEntity> findAllQuote(@Param("quoteId") Long Id, @Param("customerId") Long customerId);
 }

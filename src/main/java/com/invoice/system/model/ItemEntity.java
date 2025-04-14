@@ -1,5 +1,6 @@
 package com.invoice.system.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
@@ -34,5 +35,6 @@ public class ItemEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "quote_id")
+    @JsonIgnore
     private QuoteEntity quote;
 }

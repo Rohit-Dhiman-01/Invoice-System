@@ -1,5 +1,6 @@
 package com.invoice.system.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.invoice.system.model.QuoteStatus;
 import lombok.Data;
 
@@ -11,8 +12,11 @@ import java.util.List;
 public class QuoteDto {
     private LocalDate quoteDate;
     private LocalDate validUntil;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Double subTotal;
-    private Double textAmount;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Double taxAmount;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private QuoteStatus status;
     private List<ItemDto> items = new ArrayList<>();
 }

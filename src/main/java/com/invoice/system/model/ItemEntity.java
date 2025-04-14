@@ -1,5 +1,6 @@
 package com.invoice.system.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
@@ -32,7 +33,8 @@ public class ItemEntity {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Double total;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "quote_id")
+    @JsonIgnore
     private QuoteEntity quote;
 }

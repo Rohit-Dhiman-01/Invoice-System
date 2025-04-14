@@ -33,6 +33,11 @@ public class QuoteEntity {
     @JoinColumn(name = "customer_id", referencedColumnName = "id")
     private CustomerEntity customer;
 
-    @OneToMany(mappedBy = "quote", cascade = CascadeType.ALL)
+    @OneToMany
+    @JoinTable(
+            name = "quote_item",
+            joinColumns = @JoinColumn(name = "quote_id"),
+            inverseJoinColumns = @JoinColumn(name = "item_id")
+    )
     private List<ItemEntity> items = new ArrayList<>();
 }

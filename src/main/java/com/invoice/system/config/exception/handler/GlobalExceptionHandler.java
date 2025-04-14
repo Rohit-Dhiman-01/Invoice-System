@@ -3,6 +3,7 @@ package com.invoice.system.config.exception.handler;
 import com.invoice.system.config.exception.CustomerNotFoundException;
 import com.invoice.system.config.exception.VendorNotFoundException;
 import com.invoice.system.config.exception.model.ErrorDetails;
+import com.invoice.system.config.exception.model.QuoteNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,8 @@ import java.util.Map;
 public class GlobalExceptionHandler {
   @ExceptionHandler({
     VendorNotFoundException.class,
-    CustomerNotFoundException.class
+    CustomerNotFoundException.class,
+    QuoteNotFoundException.class
   })
   public ResponseEntity<ErrorDetails> handleNotFound(RuntimeException ex) {
     return ResponseEntity.ok(new ErrorDetails(ex.getMessage(), HttpStatus.NOT_FOUND.value()));

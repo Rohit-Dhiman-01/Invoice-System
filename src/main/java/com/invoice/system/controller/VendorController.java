@@ -4,12 +4,11 @@ import com.invoice.system.dto.VendorDto;
 import com.invoice.system.model.VendorEntity;
 import com.invoice.system.service.VendorService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/vendors")
@@ -29,7 +28,7 @@ public class VendorController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<VendorEntity> getVendorById(@PathVariable Long id){
+  public ResponseEntity<VendorEntity> getVendorById(@PathVariable Long id) {
     return ResponseEntity.ok(vendorService.getVendorById(id));
   }
 }

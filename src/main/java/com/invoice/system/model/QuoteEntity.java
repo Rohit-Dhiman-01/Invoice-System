@@ -32,8 +32,8 @@ public class QuoteEntity {
   @Column(name = "subTotal")
   private Double subTotal;
 
-  @Column(name = "textAmount")
-  private Double textAmount;
+  @Column(name = "taxAmount")
+  private Double taxAmount;
 
   @Column(name = "status")
   @Enumerated(EnumType.STRING)
@@ -41,9 +41,13 @@ public class QuoteEntity {
 
   @JsonIgnore
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "customer_id", referencedColumnName = "id")
+  @JoinColumn(name = "customer_id")
   private CustomerEntity customer;
 
-  @OneToMany(mappedBy = "quote", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "quote")
   private List<ItemEntity> items = new ArrayList<>();
+
+  @JsonIgnore
+  @OneToOne(mappedBy = "quote")
+  private PurchaseOrderEntity purchaseOrder;
 }

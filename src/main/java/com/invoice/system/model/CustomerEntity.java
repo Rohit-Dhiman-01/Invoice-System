@@ -40,6 +40,6 @@ public class CustomerEntity {
   @Column(name = "shippingAddress")
   private String shippingAddress;
 
-  @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+  @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<QuoteEntity> quotes = new ArrayList<>();
 }

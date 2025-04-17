@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface QuoteMapper {
-  QuoteEntity toItemEntity(QuoteDto quoteDto);
+  QuoteEntity toQuoteEntity(QuoteDto quoteDto);
 
-  QuoteDto toItemDto(QuoteEntity quoteEntity);
+  QuoteDto toQuoteDto(QuoteEntity quoteEntity);
 }

@@ -3,6 +3,8 @@ package com.invoice.system.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 
 @Entity
@@ -32,4 +34,7 @@ public class VendorEntity {
 
   @Column(name = "address")
   private String address;
+
+  @OneToMany(mappedBy = "vendor", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<PurchaseOrderEntity> purchaseOrders = new ArrayList<>();
 }

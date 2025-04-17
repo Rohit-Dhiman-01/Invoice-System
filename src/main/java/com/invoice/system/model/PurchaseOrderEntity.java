@@ -26,7 +26,7 @@ public class PurchaseOrderEntity {
   private Double subTotal;
 
   @Column(name = "textAmount")
-  private Double textAmount;
+  private Double taxAmount;
 
   private Double totalAmount;
 
@@ -39,6 +39,7 @@ public class PurchaseOrderEntity {
   @JoinColumn(name = "vendor_id", referencedColumnName = "id")
   private VendorEntity vendor;
 
+  @JsonIgnore
   @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
   @JoinColumn(name = "quote_id", referencedColumnName = "id")
   private QuoteEntity quote;

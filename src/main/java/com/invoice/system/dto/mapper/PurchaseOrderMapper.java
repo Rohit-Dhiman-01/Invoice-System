@@ -1,12 +1,16 @@
 package com.invoice.system.dto.mapper;
 
-import com.invoice.system.dto.PurchaseOrderDto;
+import com.invoice.system.dto.PurchaseOrderResponse;
 import com.invoice.system.model.PurchaseOrderEntity;
+import java.util.List;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface PurchaseOrderMapper {
-  PurchaseOrderEntity toPurchaseOrderEntity(PurchaseOrderDto purchaseOrderDto);
+  @Mapping(source = "quote.items", target = "items")
+  PurchaseOrderResponse toPurchaseOrderResponse(PurchaseOrderEntity entity);
 
-  PurchaseOrderDto toPurchaseOrderDto(PurchaseOrderEntity purchaseOrderEntity);
+  @Mapping(source = "quote.items", target = "items")
+  List<PurchaseOrderResponse> toPurchaseOrderResponseList(List<PurchaseOrderEntity> entity);
 }

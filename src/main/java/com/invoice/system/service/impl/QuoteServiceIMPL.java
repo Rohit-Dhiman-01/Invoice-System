@@ -1,6 +1,7 @@
 package com.invoice.system.service.impl;
 
 import com.invoice.system.config.exception.CustomerNotFoundException;
+import com.invoice.system.config.exception.QuoteAlreadySentException;
 import com.invoice.system.config.exception.QuoteNotFoundException;
 import com.invoice.system.dto.ItemDto;
 import com.invoice.system.dto.QuoteDto;
@@ -142,6 +143,10 @@ public class QuoteServiceIMPL implements QuoteService {
         quoteRepository
             .findByIdAndCustomerId(quoteId, customerId)
             .orElseThrow(() -> new QuoteNotFoundException("Quote not found for customer"));
+
+    if (existingQuote.getStatus().equals(QuoteStatus.SENT)) {
+      throw new QuoteAlreadySentException("Quote Already Sent");
+    }
 
     existingQuote.setQuoteDate(quoteDto.getQuoteDate());
     existingQuote.setValidUntil(quoteDto.getValidUntil());

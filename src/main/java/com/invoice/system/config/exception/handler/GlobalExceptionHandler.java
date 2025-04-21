@@ -1,8 +1,6 @@
 package com.invoice.system.config.exception.handler;
 
-import com.invoice.system.config.exception.CustomerNotFoundException;
-import com.invoice.system.config.exception.QuoteNotFoundException;
-import com.invoice.system.config.exception.VendorNotFoundException;
+import com.invoice.system.config.exception.*;
 import com.invoice.system.config.exception.model.ErrorDetails;
 import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
@@ -17,7 +15,9 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({
     VendorNotFoundException.class,
     CustomerNotFoundException.class,
-    QuoteNotFoundException.class
+    QuoteNotFoundException.class,
+    QuoteAlreadySentException.class,
+    PurchaseOrderNotFoundException.class
   })
   public ResponseEntity<ErrorDetails> handleNotFound(RuntimeException ex) {
     return ResponseEntity.ok(new ErrorDetails(ex.getMessage(), HttpStatus.NOT_FOUND.value()));

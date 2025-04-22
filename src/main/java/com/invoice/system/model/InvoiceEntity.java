@@ -6,8 +6,6 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "Invoice")
@@ -51,9 +49,5 @@ public class InvoiceEntity {
     @EqualsAndHashCode.Exclude
     private PurchaseOrderEntity purchaseOrder;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "invoice")
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private List<ItemEntity> items = new ArrayList<>();
 
 }

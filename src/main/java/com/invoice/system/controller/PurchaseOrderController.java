@@ -46,7 +46,11 @@ public class PurchaseOrderController {
       @PathVariable Long vendorId, @PathVariable Long purchaseOrderId) {
     byte[] pdfBytes = purchaseOrderService.generatePurchaseOrderPdf(vendorId, purchaseOrderId);
     return ResponseEntity.ok()
-        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=PO-" + purchaseOrderId + ".pdf")
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            "inline; filename="
+                + getPurchaseOrderById(vendorId, purchaseOrderId).getBody().getPoNumber()
+                + ".pdf")
         .contentType(MediaType.APPLICATION_PDF)
         .body(pdfBytes);
   }

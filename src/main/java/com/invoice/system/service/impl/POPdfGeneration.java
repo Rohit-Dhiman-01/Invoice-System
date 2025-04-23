@@ -8,10 +8,8 @@ import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
-import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfPage;
-import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
 import com.itextpdf.kernel.pdf.extgstate.PdfExtGState;
@@ -24,7 +22,6 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DecimalFormat;
@@ -36,34 +33,6 @@ import org.springframework.stereotype.Service;
 public class POPdfGeneration {
   private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,##0.00");
   private static final PdfFont font = loadUnicodeFont();
-
-  public void createPdfOnDisk(PurchaseOrderResponse purchaseOrder) {
-    try {
-      String folderPath = "D:\\invoice-system pdf\\PO\\";
-      String fileName = purchaseOrder.getPoNumber() + ".pdf";
-      File directory = new File(folderPath);
-
-      if (!directory.exists()) {
-        directory.mkdirs();
-      }
-
-      String fullPath = folderPath + fileName;
-
-      PdfWriter diskWriter = new PdfWriter(fullPath);
-      PdfDocument pdfDocDisk = new PdfDocument(diskWriter);
-      Document document = new Document(pdfDocDisk, PageSize.A4);
-      document.setMargins(30, 30, 30, 30);
-
-      generatePdfContent(document, purchaseOrder);
-      document.flush();
-      addWatermark(pdfDocDisk, purchaseOrder);
-      document.close();
-      pdfDocDisk.close();
-
-    } catch (Exception e) {
-
-    }
-  }
 
   public void addWatermark(PdfDocument pdfDoc, PurchaseOrderResponse purchaseOrder) {
     int pageCount = pdfDoc.getNumberOfPages();

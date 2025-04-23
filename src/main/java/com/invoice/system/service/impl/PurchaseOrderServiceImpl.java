@@ -117,8 +117,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
       pdfGeneration.generatePdfContent(document, purchaseOrder);
       document.close();
 
-      pdfGeneration.createPdfOnDisk(purchaseOrder);
-
     } catch (Exception e) {
       e.printStackTrace();
     }

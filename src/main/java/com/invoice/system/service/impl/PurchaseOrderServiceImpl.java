@@ -10,7 +10,12 @@ import com.invoice.system.dto.mapper.PurchaseOrderMapper;
 import com.invoice.system.model.*;
 import com.invoice.system.repository.*;
 import com.invoice.system.service.PurchaseOrderService;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
 import jakarta.transaction.Transactional;
+import java.io.ByteArrayOutputStream;
 import java.time.Year;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +29,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
   private final PurchaseOrderSequenceNumberRepository purchaseOrderSequenceNumberRepository;
   private final PurchaseOrderRepository purchaseOrderRepository;
   private final PurchaseOrderMapper purchaseOrderMapper;
+  private final POPdfGeneration pdfGeneration;
 
   @Transactional
   public String generateQuoteSequenceNumber() {
@@ -43,7 +49,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
   @Transactional
   public PurchaseOrderResponse createPurchaseOrder(
       Long vendorId, Long quoteId, PurchaseOrderDto purchaseOrderDto) {
-
     VendorEntity vendor =
         vendorRepository
             .findById(vendorId)
@@ -57,18 +62,18 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     PurchaseOrderEntity purchaseOrder = new PurchaseOrderEntity();
     purchaseOrder.setPoNumber(generateQuoteSequenceNumber());
     purchaseOrder.setPoDate(purchaseOrderDto.getPoDate());
-    purchaseOrder.setShippingAddress(purchaseOrderDto.getShippingAddress());
+    purchaseOrder.setShippingAddress(quote.getCustomer().getShippingAddress());
     purchaseOrder.setQuote(quote);
     purchaseOrder.setVendor(vendor);
-    purchaseOrder.setSubTotal(quote.getSubTotal() - quote.getTaxAmount());
+    purchaseOrder.setSubTotal(quote.getSubTotal());
     purchaseOrder.setTaxAmount(quote.getTaxAmount());
-    purchaseOrder.setTotalAmount(quote.getSubTotal());
+    purchaseOrder.setTotalAmount(quote.getTotalAmount());
     if (!quote.getStatus().equals(QuoteStatus.DRAFT)) {
       throw new QuoteAlreadySentException("Quote Already sent");
     }
     quote.setStatus(QuoteStatus.SENT);
     quoteRepository.save(quote);
-    purchaseOrder.setStatus(PurchaseOrderStatus.APPROVED);
+    purchaseOrder.setStatus(PurchaseOrderStatus.DRAFT);
     return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderRepository.save(purchaseOrder));
   }
 
@@ -96,5 +101,26 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     new PurchaseOrderNotFoundException("Purchase Order Not Found for this vendor"));
 
     return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrder);
+  }
+
+  @Override
+  public byte[] generatePurchaseOrderPdf(Long vendorId, Long purchaseOrderId) {
+    PurchaseOrderResponse purchaseOrder = getPurchaseOrderById(vendorId, purchaseOrderId);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+    try {
+      PdfWriter memoryWriter = new PdfWriter(out);
+      PdfDocument pdfDocMemory = new PdfDocument(memoryWriter);
+      Document document = new Document(pdfDocMemory, PageSize.A4);
+      document.setMargins(30, 30, 30, 30);
+
+      pdfGeneration.generatePdfContent(document, purchaseOrder);
+      document.close();
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return out.toByteArray();
   }
 }

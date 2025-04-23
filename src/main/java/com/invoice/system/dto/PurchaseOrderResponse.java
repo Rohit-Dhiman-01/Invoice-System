@@ -17,4 +17,5 @@ public class PurchaseOrderResponse {
   private Double taxAmount;
   private Double totalAmount;
   private PurchaseOrderStatus status;
+  private String currency;
 }

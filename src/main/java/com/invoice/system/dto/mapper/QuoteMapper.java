@@ -1,12 +1,13 @@
 package com.invoice.system.dto.mapper;
 
-import com.invoice.system.dto.QuoteDto;
+import com.invoice.system.dto.QuoteResponse;
 import com.invoice.system.model.QuoteEntity;
+import java.util.List;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface QuoteMapper {
-  QuoteEntity toQuoteEntity(QuoteDto quoteDto);
+  QuoteResponse toQuoteResponse(QuoteEntity quoteEntity);
 
-  QuoteDto toQuoteDto(QuoteEntity quoteEntity);
+  List<QuoteResponse> toQuoteResponse(List<QuoteEntity> quoteEntity);
 }

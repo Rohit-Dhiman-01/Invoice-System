@@ -1,10 +1,13 @@
 package com.invoice.system.service.impl;
 
+import com.invoice.system.config.exception.CurrencyNotFoundException;
 import com.invoice.system.config.exception.CustomerNotFoundException;
 import com.invoice.system.config.exception.QuoteAlreadySentException;
 import com.invoice.system.config.exception.QuoteNotFoundException;
 import com.invoice.system.dto.ItemDto;
 import com.invoice.system.dto.QuoteDto;
+import com.invoice.system.dto.QuoteResponse;
+import com.invoice.system.dto.mapper.QuoteMapper;
 import com.invoice.system.model.*;
 import com.invoice.system.repository.*;
 import com.invoice.system.service.QuoteService;
@@ -20,6 +23,7 @@ public class QuoteServiceIMPL implements QuoteService {
   private final QuoteRepository quoteRepository;
   private final CustomerRepository customerRepository;
   private final QuoteSequenceNumberRepository sequenceNumberRepository;
+  private final QuoteMapper quoteMapper;
 
   /**
    * Save the next sequence number for the future use or when application is restarted
@@ -49,7 +53,7 @@ public class QuoteServiceIMPL implements QuoteService {
    */
   @Override
   @Transactional
-  public QuoteEntity createQuote(QuoteDto quoteDto, Long customerId) {
+  public QuoteResponse createQuote(QuoteDto quoteDto, Long customerId) {
     CustomerEntity customer =
         customerRepository
             .findById(customerId)
@@ -60,7 +64,14 @@ public class QuoteServiceIMPL implements QuoteService {
     quote.setQuoteDate(quoteDto.getQuoteDate());
     quote.setValidUntil(quoteDto.getValidUntil());
     quote.setStatus(QuoteStatus.DRAFT);
-    quote.setCustomer(customer); // Associate with customer
+
+    Map<String, String> currencies = getCurrencies();
+    if (!currencies.containsKey(quoteDto.getCurrency().toUpperCase())) {
+      throw new CurrencyNotFoundException(
+          "Currency Not Found::: Available Currencies:" + currencies.keySet());
+    }
+    quote.setCurrency(currencies.get(quoteDto.getCurrency().toUpperCase()));
+    quote.setCustomer(customer);
 
     List<ItemEntity> itemEntities = new ArrayList<>();
     double totalBeforeTax = 0.0;
@@ -87,11 +98,12 @@ public class QuoteServiceIMPL implements QuoteService {
       itemEntities.add(item);
     }
 
-    quote.setSubTotal(totalBeforeTax + totalTaxAmount);
+    quote.setSubTotal(totalBeforeTax);
     quote.setTaxAmount(totalTaxAmount);
+    quote.setTotalAmount(totalBeforeTax + totalTaxAmount);
     quote.setItems(itemEntities);
 
-    return quoteRepository.save(quote);
+    return quoteMapper.toQuoteResponse(quoteRepository.save(quote));
   }
 
   /**
@@ -101,8 +113,8 @@ public class QuoteServiceIMPL implements QuoteService {
    * @return all Quote for the given customer id
    */
   @Override
-  public List<QuoteEntity> getAllQuote(Long customerId) {
-    return quoteRepository.findAllQuotesByCustomerId(customerId);
+  public List<QuoteResponse> getAllQuote(Long customerId) {
+    return quoteMapper.toQuoteResponse(quoteRepository.findAllQuotesByCustomerId(customerId));
   }
 
   /**
@@ -113,14 +125,15 @@ public class QuoteServiceIMPL implements QuoteService {
    * @return the quote for the customer
    */
   @Override
-  public QuoteEntity getQuoteWithID(Long quoteId, Long customerId) {
+  public QuoteResponse getQuoteWithID(Long quoteId, Long customerId) {
     Optional<CustomerEntity> customerEntityOptional = customerRepository.findById(customerId);
     if (customerEntityOptional.isEmpty()) {
       throw new CustomerNotFoundException("Customer not found");
     }
-    return quoteRepository
-        .findAllQuote(quoteId, customerId)
-        .orElseThrow(() -> new QuoteNotFoundException("Quote not found "));
+    return quoteMapper.toQuoteResponse(
+        quoteRepository
+            .findByIdAndCustomerId(quoteId, customerId)
+            .orElseThrow(() -> new QuoteNotFoundException("Quote not found For this customer")));
   }
 
   /**
@@ -133,7 +146,7 @@ public class QuoteServiceIMPL implements QuoteService {
    */
   @Override
   @Transactional
-  public QuoteEntity updateQuoteWithID(Long quoteId, Long customerId, QuoteDto quoteDto) {
+  public QuoteResponse updateQuoteWithID(Long quoteId, Long customerId, QuoteDto quoteDto) {
     CustomerEntity customer =
         customerRepository
             .findById(customerId)
@@ -180,7 +193,7 @@ public class QuoteServiceIMPL implements QuoteService {
     existingQuote.setSubTotal(totalBeforeTax + totalTax);
     existingQuote.setTaxAmount(totalTax);
 
-    return quoteRepository.save(existingQuote);
+    return quoteMapper.toQuoteResponse(quoteRepository.save(existingQuote));
   }
 
   /**
@@ -199,5 +212,22 @@ public class QuoteServiceIMPL implements QuoteService {
       throw new QuoteNotFoundException("Quote not found for customer");
     }
     quoteRepository.deleteById(quoteId);
+  }
+
+  public Map<String, String> getCurrencies() {
+    HashMap<String, String> currencySymbols = new HashMap<>();
+    currencySymbols.put("USD", "$"); // US Dollar
+    currencySymbols.put("EUR", "€"); // Euro
+    currencySymbols.put("JPY", "¥"); // Japanese Yen
+    currencySymbols.put("GBP", "£"); // British Pound Sterling
+    currencySymbols.put("CNY", "¥"); // Chinese Renminbi (Yuan)
+    currencySymbols.put("AUD", "A$"); // Australian Dollar
+    currencySymbols.put("CAD", "C$"); // Canadian Dollar
+    currencySymbols.put("CHF", "CHF"); // Swiss Franc
+    currencySymbols.put("HKD", "HK$"); // Hong Kong Dollar
+    currencySymbols.put("SGD", "S$"); // Singapore Dollar
+    currencySymbols.put("INR", "₹"); // Indian Rupee
+    currencySymbols.put("AED", "د.إ"); // UAE Dinar
+    return currencySymbols;
   }
 }

@@ -21,5 +21,7 @@ public class QuoteDto {
   @JsonProperty(access = JsonProperty.Access.READ_ONLY)
   private QuoteStatus status;
 
+  private String currency;
+
   private List<ItemDto> items = new ArrayList<>();
 }

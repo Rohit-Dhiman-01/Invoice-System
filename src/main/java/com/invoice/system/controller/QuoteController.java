@@ -1,7 +1,7 @@
 package com.invoice.system.controller;
 
 import com.invoice.system.dto.QuoteDto;
-import com.invoice.system.model.QuoteEntity;
+import com.invoice.system.dto.QuoteResponse;
 import com.invoice.system.service.impl.QuoteServiceIMPL;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,27 +15,27 @@ public class QuoteController {
   @Autowired private QuoteServiceIMPL quoteServiceIMPL;
 
   @PostMapping
-  public ResponseEntity<QuoteEntity> createQuote(
+  public ResponseEntity<QuoteResponse> createQuote(
       @RequestBody QuoteDto quoteDto, @PathVariable Long customerId) {
     return new ResponseEntity<>(
         quoteServiceIMPL.createQuote(quoteDto, customerId), HttpStatus.CREATED);
   }
 
   @GetMapping
-  public ResponseEntity<List<QuoteEntity>> getAllQuote(
+  public ResponseEntity<List<QuoteResponse>> getAllQuote(
       @PathVariable(value = "customerId", required = false) Long customerId) {
     return new ResponseEntity<>(quoteServiceIMPL.getAllQuote(customerId), HttpStatus.OK);
   }
 
   @GetMapping("{quoteId}")
-  public ResponseEntity<QuoteEntity> getQuoteWithID(
+  public ResponseEntity<QuoteResponse> getQuoteWithID(
       @PathVariable Long quoteId, @PathVariable Long customerId) {
     return new ResponseEntity<>(
         quoteServiceIMPL.getQuoteWithID(quoteId, customerId), HttpStatus.OK);
   }
 
   @PutMapping("{quoteId}")
-  public ResponseEntity<QuoteEntity> updateQuoteWithID(
+  public ResponseEntity<QuoteResponse> updateQuoteWithID(
       @PathVariable Long quoteId, @PathVariable Long customerId, @RequestBody QuoteDto quoteDto) {
     return new ResponseEntity<>(
         quoteServiceIMPL.updateQuoteWithID(quoteId, customerId, quoteDto), HttpStatus.OK);

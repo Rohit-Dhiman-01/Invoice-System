@@ -6,5 +6,4 @@ import lombok.Data;
 @Data
 public class PurchaseOrderDto {
   private LocalDate poDate;
-  private String shippingAddress;
 }

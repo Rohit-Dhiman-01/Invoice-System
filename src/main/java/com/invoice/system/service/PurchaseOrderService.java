@@ -11,4 +11,6 @@ public interface PurchaseOrderService {
   List<PurchaseOrderResponse> getAllPurchaseOrders(Long vendorId);
 
   PurchaseOrderResponse getPurchaseOrderById(Long vendorId, Long purchaseOrderId);
+
+  byte[] generatePurchaseOrderPdf(Long vendorId, Long purchaseOrderId);
 }

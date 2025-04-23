@@ -35,9 +35,13 @@ public class QuoteEntity {
   @Column(name = "taxAmount")
   private Double taxAmount;
 
+  private Double totalAmount;
+
   @Column(name = "status")
   @Enumerated(EnumType.STRING)
   private QuoteStatus status;
+
+  private String currency;
 
   @JsonIgnore
   @ManyToOne(fetch = FetchType.LAZY)

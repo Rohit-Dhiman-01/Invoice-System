@@ -1,0 +1,96 @@
+openapi: 3.0.1
+info:
+  title: PDF Download API
+  version: 1.0.0
+  description: API for downloading PDF documents for quotes, invoices, and purchase orders.
+
+paths:
+  /vendor/{vendorId}/purchase-orders/{purchaseOrderId}/pdf:
+    get:
+      summary: Download Purchase Order PDF
+      tags:
+        - Purchase Order
+      operationId: downloadPurchaseOrderPdf
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: purchaseOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF file for the purchase order
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Purchase order not found
+        '500':
+          description: Server error
+
+  /customer/{customerId}/invoices/{invoiceId}/pdf:
+    get:
+      summary: Download Invoice PDF
+      tags:
+        - Invoice
+      operationId: downloadInvoicePdf
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF file for the invoice
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Invoice not found
+        '500':
+          description: Server error
+
+  /customer/{customerId}/quotes/{quoteId}/pdf:
+    get:
+      summary: Download Quote PDF
+      tags:
+        - Quote
+      operationId: downloadQuotePdf
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quoteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF file for the quote
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Quote not found
+        '500':
+          description: Server error

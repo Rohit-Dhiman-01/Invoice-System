@@ -1,5 +1,6 @@
 package com.invoice.system.controller;
 
+import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.InvoiceDto;
 import com.invoice.system.dto.InvoiceResponse;
 import com.invoice.system.service.impl.InvoiceServiceImpl;
@@ -37,5 +38,14 @@ public class InvoiceController {
       @PathVariable Long customerId, @PathVariable Long invoiceId) {
     return new ResponseEntity<>(
         invoiceService.getInvoiceById(customerId, invoiceId), HttpStatus.OK);
+  }
+
+  @PutMapping("/invoices/{invoiceId}/status")
+  public ResponseEntity<Void> approveInvoice(
+      @PathVariable Long customerId,
+      @PathVariable Long invoiceId,
+      @RequestBody ApproveDto approveDto) {
+    invoiceService.approveInvoice(invoiceId, customerId, approveDto);
+    return ResponseEntity.status(HttpStatus.OK).build();
   }
 }

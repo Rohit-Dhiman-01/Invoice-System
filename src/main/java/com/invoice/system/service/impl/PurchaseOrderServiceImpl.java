@@ -1,9 +1,9 @@
 package com.invoice.system.service.impl;
 
 import com.invoice.system.config.exception.PurchaseOrderNotFoundException;
-import com.invoice.system.config.exception.QuoteAlreadySentException;
 import com.invoice.system.config.exception.QuoteNotFoundException;
 import com.invoice.system.config.exception.VendorNotFoundException;
+import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.PurchaseOrderDto;
 import com.invoice.system.dto.PurchaseOrderResponse;
 import com.invoice.system.dto.mapper.PurchaseOrderMapper;
@@ -58,6 +58,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         quoteRepository
             .findById(quoteId)
             .orElseThrow(() -> new QuoteNotFoundException("Quote Not Found"));
+    if (quote.getStatus().equals(QuoteStatus.DRAFT)) {
+      throw new QuoteNotFoundException("Quote Not Approved");
+    }
+    if (quote.getPurchaseOrder() != null) {
+      throw new QuoteNotFoundException("Purchase Order Already Created For this Quote");
+    }
 
     PurchaseOrderEntity purchaseOrder = new PurchaseOrderEntity();
     purchaseOrder.setPoNumber(generateQuoteSequenceNumber());
@@ -68,11 +74,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     purchaseOrder.setSubTotal(quote.getSubTotal());
     purchaseOrder.setTaxAmount(quote.getTaxAmount());
     purchaseOrder.setTotalAmount(quote.getTotalAmount());
-    if (!quote.getStatus().equals(QuoteStatus.DRAFT)) {
-      throw new QuoteAlreadySentException("Quote Already sent");
-    }
-    quote.setStatus(QuoteStatus.SENT);
-    quoteRepository.save(quote);
     purchaseOrder.setStatus(PurchaseOrderStatus.DRAFT);
     return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderRepository.save(purchaseOrder));
   }
@@ -115,6 +116,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
       document.setMargins(30, 30, 30, 30);
 
       pdfGeneration.generatePdfContent(document, purchaseOrder);
+      pdfGeneration.addWatermark(pdfDocMemory, purchaseOrder);
       document.close();
 
     } catch (Exception e) {
@@ -122,5 +124,22 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     return out.toByteArray();
+  }
+
+  @Override
+  public void approvePurchseOrder(Long vendorId, Long purchaseOrderId, ApproveDto approveDto) {
+    VendorEntity vendor =
+        vendorRepository
+            .findById(vendorId)
+            .orElseThrow(() -> new VendorNotFoundException("Vendor Not Found"));
+    PurchaseOrderEntity purchaseOrder =
+        vendor.getPurchaseOrders().stream()
+            .filter(po -> po.getId().equals(purchaseOrderId))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new PurchaseOrderNotFoundException("Purchase Order Not Found for this vendor"));
+    purchaseOrder.setStatus(PurchaseOrderStatus.valueOf(approveDto.getStatus().toUpperCase()));
+    purchaseOrderRepository.save(purchaseOrder);
   }
 }

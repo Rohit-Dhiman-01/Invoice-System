@@ -1,5 +1,6 @@
 package com.invoice.system.controller;
 
+import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.PurchaseOrderDto;
 import com.invoice.system.dto.PurchaseOrderResponse;
 import com.invoice.system.service.PurchaseOrderService;
@@ -53,5 +54,14 @@ public class PurchaseOrderController {
                 + ".pdf")
         .contentType(MediaType.APPLICATION_PDF)
         .body(pdfBytes);
+  }
+
+  @PutMapping("/purchase-orders/{purchaseOrderId}/status")
+  public ResponseEntity<Void> approvePurchaseOrder(
+      @PathVariable Long vendorId,
+      @PathVariable Long purchaseOrderId,
+      @RequestBody ApproveDto approveDto) {
+    purchaseOrderService.approvePurchseOrder(vendorId, purchaseOrderId, approveDto);
+    return ResponseEntity.status(HttpStatus.OK).build();
   }
 }

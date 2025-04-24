@@ -1,6 +1,7 @@
 package com.invoice.system.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.invoice.system.model.base.AuditInfo;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -8,13 +9,15 @@ import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "Quote")
 @ToString(exclude = "items")
-@EqualsAndHashCode(exclude = "items")
+@EqualsAndHashCode(exclude = "items", callSuper = true)
+@EntityListeners(AuditingEntityListener.class)
 @Data
-public class QuoteEntity {
+public class QuoteEntity extends AuditInfo {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

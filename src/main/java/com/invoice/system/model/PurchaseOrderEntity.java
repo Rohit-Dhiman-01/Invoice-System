@@ -1,53 +1,56 @@
 package com.invoice.system.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.invoice.system.model.base.AuditInfo;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
-
+@EqualsAndHashCode(callSuper = true)
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "PurchaseOrder")
 @Data
-public class PurchaseOrderEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class PurchaseOrderEntity extends AuditInfo {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "poNumber")
-    private String poNumber;
+  @Column(name = "poNumber")
+  private String poNumber;
 
-    @Column(name = "poDate")
-    private LocalDate poDate;
+  @Column(name = "poDate")
+  private LocalDate poDate;
 
-    @Column(name = "shippingAddress")
-    private String shippingAddress;
+  @Column(name = "shippingAddress")
+  private String shippingAddress;
 
-    @Column(name = "subTotal")
-    private Double subTotal;
+  @Column(name = "subTotal")
+  private Double subTotal;
 
-    @Column(name = "textAmount")
-    private Double taxAmount;
+  @Column(name = "textAmount")
+  private Double taxAmount;
 
-    private Double totalAmount;
+  private Double totalAmount;
 
-    @Column(name = "status")
-    @Enumerated(EnumType.STRING)
-    private PurchaseOrderStatus status;
+  @Column(name = "status")
+  @Enumerated(EnumType.STRING)
+  private PurchaseOrderStatus status;
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vendor_id", referencedColumnName = "id")
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private VendorEntity vendor;
+  @JsonIgnore
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "vendor_id", referencedColumnName = "id")
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private VendorEntity vendor;
 
-    @JsonIgnore
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "quote_id", referencedColumnName = "id")
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private QuoteEntity quote;
+  @JsonIgnore
+  @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+  @JoinColumn(name = "quote_id", referencedColumnName = "id")
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private QuoteEntity quote;
 }

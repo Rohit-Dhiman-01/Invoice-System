@@ -1,5 +1,6 @@
 package com.invoice.system.service;
 
+import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.QuoteDto;
 import com.invoice.system.dto.QuoteResponse;
 import java.util.List;
@@ -14,4 +15,6 @@ public interface QuoteService {
   QuoteResponse updateQuoteWithID(Long quoteId, Long customerId, QuoteDto quoteDto);
 
   void deleteQuoteWithID(Long quoteId, Long customerId);
+
+  void approveQuote(Long quoteId, Long customerId, ApproveDto approveDto);
 }

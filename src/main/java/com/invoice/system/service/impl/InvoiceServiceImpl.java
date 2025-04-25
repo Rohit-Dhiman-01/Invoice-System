@@ -3,6 +3,8 @@ package com.invoice.system.service.impl;
 import com.invoice.system.config.exception.CustomerNotFoundException;
 import com.invoice.system.config.exception.InvoiceNotFoundException;
 import com.invoice.system.config.exception.PurchaseOrderNotFoundException;
+import com.invoice.system.config.exception.QuoteNotFoundException;
+import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.InvoiceDto;
 import com.invoice.system.dto.InvoiceResponse;
 import com.invoice.system.dto.mapper.InvoiceMapper;
@@ -57,11 +59,12 @@ public class InvoiceServiceImpl implements InvoiceService {
     if (!purchaseOrder.getQuote().getCustomer().getId().equals(customerId)) {
       throw new InvoiceNotFoundException("Invoice not found for this customer");
     }
-
+    if (purchaseOrder.getStatus().equals(PurchaseOrderStatus.DRAFT)) {
+      throw new QuoteNotFoundException("Purchase Order Not Approved");
+    }
     InvoiceEntity invoiceEntity = new InvoiceEntity();
     invoiceEntity.setId(null);
     invoiceEntity.setInvoiceNumber(generateInvoiceSequenceNumber());
-
     invoiceEntity.setInvoiceDate(invoiceDto.getInvoiceDate());
     invoiceEntity.setDueDate(invoiceDto.getDueDate());
     invoiceEntity.setPaymentStatus(InvoiceEntityPaymentStatus.UNPAID);
@@ -96,5 +99,20 @@ public class InvoiceServiceImpl implements InvoiceService {
             .findByCustomerIdAndId(customerId, invoiceId)
             .orElseThrow(
                 () -> new InvoiceNotFoundException("Invoice Not found for this Customer")));
+  }
+
+  @Override
+  public void approveInvoice(Long invoiceId, Long customerId, ApproveDto approveDto) {
+    CustomerEntity customer =
+        customerRepository
+            .findById(customerId)
+            .orElseThrow(() -> new CustomerNotFoundException("Customer Not Found"));
+    InvoiceEntity invoice =
+        invoiceEntityRepository
+            .findByCustomerIdAndId(customerId, invoiceId)
+            .orElseThrow(() -> new InvoiceNotFoundException("Invoice Not found for this Customer"));
+    invoice.setPaymentStatus(
+        InvoiceEntityPaymentStatus.valueOf(approveDto.getStatus().toUpperCase()));
+    invoiceEntityRepository.save(invoice);
   }
 }

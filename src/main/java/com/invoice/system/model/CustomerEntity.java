@@ -1,12 +1,12 @@
 package com.invoice.system.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
-import lombok.*;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.*;
 
 @Entity
 @Table(name = "Customer")
@@ -16,32 +16,32 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomerEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "customerName")
-    private String customerName;
+  @Column(name = "customerName")
+  private String customerName;
 
-    @Email(message = "Enter Valid Mail")
-    private String email;
+  @Email(message = "Enter Valid Mail")
+  private String email;
 
-    @Pattern(regexp = "[0-9]{10}", message = "Phone number must be exactly 10 digits")
-    private String phone;
+  @Pattern(regexp = "[0-9]{10}", message = "Phone number must be exactly 10 digits")
+  private String phone;
 
-    @Pattern(
-            regexp = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$",
-            message = "Invalid GST number")
-    @Column(name = "gstNumber")
-    private String gstNumber;
+  @Pattern(
+      regexp = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$",
+      message = "Invalid GST number")
+  @Column(name = "gstNumber")
+  private String gstNumber;
 
-    @Column(name = "billingAddress")
-    private String billingAddress;
+  @Column(name = "billingAddress")
+  private String billingAddress;
 
-    @Column(name = "shippingAddress")
-    private String shippingAddress;
+  @Column(name = "shippingAddress")
+  private String shippingAddress;
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QuoteEntity> quotes = new ArrayList<>();
-
+  @JsonIgnore
+  @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<QuoteEntity> quotes = new ArrayList<>();
 }

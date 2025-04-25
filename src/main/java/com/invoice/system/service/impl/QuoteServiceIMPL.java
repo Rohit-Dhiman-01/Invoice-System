@@ -4,6 +4,7 @@ import com.invoice.system.config.exception.CurrencyNotFoundException;
 import com.invoice.system.config.exception.CustomerNotFoundException;
 import com.invoice.system.config.exception.QuoteAlreadySentException;
 import com.invoice.system.config.exception.QuoteNotFoundException;
+import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.ItemDto;
 import com.invoice.system.dto.QuoteDto;
 import com.invoice.system.dto.QuoteResponse;
@@ -41,7 +42,7 @@ public class QuoteServiceIMPL implements QuoteService {
     quoteSequenceNumber.setLastNumberUsed(newSequence);
 
     sequenceNumberRepository.save(quoteSequenceNumber);
-    return String.format("Q-%d:%03d", currentYear, newSequence);
+    return String.format("Q-%d-%03d", currentYear, newSequence);
   }
 
   /**
@@ -157,8 +158,8 @@ public class QuoteServiceIMPL implements QuoteService {
             .findByIdAndCustomerId(quoteId, customerId)
             .orElseThrow(() -> new QuoteNotFoundException("Quote not found for customer"));
 
-    if (existingQuote.getStatus().equals(QuoteStatus.SENT)) {
-      throw new QuoteAlreadySentException("Quote Already Sent");
+    if (!existingQuote.getStatus().equals(QuoteStatus.DRAFT)) {
+      throw new QuoteAlreadySentException("Quote Already Approved/Rejected");
     }
 
     existingQuote.setQuoteDate(quoteDto.getQuoteDate());
@@ -212,6 +213,19 @@ public class QuoteServiceIMPL implements QuoteService {
       throw new QuoteNotFoundException("Quote not found for customer");
     }
     quoteRepository.deleteById(quoteId);
+  }
+
+  @Override
+  public void approveQuote(Long quoteId, Long customerId, ApproveDto approveDto) {
+    if (!customerRepository.existsById(customerId)) {
+      throw new CustomerNotFoundException("Customer not found");
+    }
+    QuoteEntity quote =
+        quoteRepository
+            .findByIdAndCustomerId(quoteId, customerId)
+            .orElseThrow(() -> new QuoteNotFoundException("Quote not found for customer"));
+    quote.setStatus(QuoteStatus.valueOf(approveDto.getStatus().toUpperCase()));
+    quoteRepository.save(quote);
   }
 
   public Map<String, String> getCurrencies() {

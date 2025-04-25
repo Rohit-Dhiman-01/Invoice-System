@@ -1,5 +1,6 @@
 package com.invoice.system.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
@@ -35,6 +36,7 @@ public class VendorEntity {
   @Column(name = "address")
   private String address;
 
+  @JsonIgnore
   @OneToMany(mappedBy = "vendor", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<PurchaseOrderEntity> purchaseOrders = new ArrayList<>();
 }

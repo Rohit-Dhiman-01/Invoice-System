@@ -1,0 +1,242 @@
+package com.invoice.system.service.impl;
+
+import com.invoice.system.model.QuoteEntity;
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.*;
+import com.itextpdf.layout.properties.HorizontalAlignment;
+import com.itextpdf.layout.properties.TextAlignment;
+import lombok.SneakyThrows;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.stream.Stream;
+
+public class QuotePDFGenerator {
+    private static final PdfFont NORMAL_FONT;
+    private static final PdfFont BOLD_FONT;
+
+    static {
+        try {
+            NORMAL_FONT = PdfFontFactory.createFont();
+            BOLD_FONT = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+        } catch (IOException e) {
+            throw new RuntimeException("Error initializing fonts", e);
+        }
+    }
+
+    @SneakyThrows
+    public ByteArrayInputStream generateQuotePdf(QuoteEntity quoteEntity) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PdfDocument pdf = new PdfDocument(new PdfWriter(baos));
+        Document document = new Document(pdf);
+
+        addHeader(document, quoteEntity);
+        addBillingInfo(document, quoteEntity);
+        addItemsTable(document, quoteEntity);
+        addFooter(document, quoteEntity);
+        document.close();
+        return new ByteArrayInputStream(baos.toByteArray());
+    }
+
+    private void addHeader(Document document, QuoteEntity quoteEntity) throws IOException {
+        Table headerTable = new Table(2);
+        headerTable.setWidth(500);
+        headerTable.setMarginTop(20);
+
+        Cell titleCell = new Cell()
+                .add(new Paragraph("QUOTE")
+                        .setFontColor(new DeviceRgb(143, 141, 141))
+                        .setFontSize(25)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setBorder(Border.NO_BORDER);
+        Cell logoCell = new Cell()
+                .add(addLogo(document.getPdfDocument()))
+                .setBorder(Border.NO_BORDER)
+                .setTextAlignment(TextAlignment.RIGHT);
+        headerTable.addCell(titleCell);
+        headerTable.addCell(logoCell);
+        document.add(headerTable);
+        Div detailsContainer = new Div()
+                .setTextAlignment(TextAlignment.LEFT)
+                .setMarginTop(10)
+                .setMarginBottom(20);
+        document.add(detailsContainer);
+
+        Div headerContainer = new Div()
+                .setTextAlignment(TextAlignment.LEFT)
+                .setMarginBottom(20);
+
+        Paragraph numberParagraph = new Paragraph()
+                .add(new Text("QUOTE NUMBER: ")
+                        .setFontColor(new DeviceRgb(90, 90, 90))
+                        .setFont(BOLD_FONT))
+                .add(new Text(quoteEntity.getQuoteNumber()))
+                .setMarginBottom(5);
+
+        Paragraph dateParagraph = new Paragraph()
+                .add(new Text("QUOTE DATE: ")
+                        .setFontColor(new DeviceRgb(90, 90, 90))
+                        .setFont(BOLD_FONT))
+                .add(new Text(String.valueOf(quoteEntity.getQuoteDate())));
+
+        headerContainer.add(numberParagraph);
+        headerContainer.add(dateParagraph);
+        document.add(headerContainer);
+    }
+
+    private void addBillingInfo(Document document, QuoteEntity quoteEntity) {
+        Table billingTable = new Table(2);
+        billingTable.setWidth(500);
+
+        Cell billedToCell = new Cell()
+                .add(new Paragraph("BILLED TO")
+                        .setFontColor(new DeviceRgb(90, 90, 90))
+                        .setFont(BOLD_FONT))
+                .add(new Paragraph(quoteEntity.getCustomer().getCustomerName()))
+                .add(new Paragraph(quoteEntity.getCustomer().getBillingAddress()))
+                .setBorder(Border.NO_BORDER);
+
+        Cell yourCompanyCell = new Cell()
+                .add(new Paragraph("YOUR COMPANY")
+                        .setFontColor(new DeviceRgb(90, 90, 90))
+                        .setFont(BOLD_FONT))
+                .add(new Paragraph("Building name"))
+                .add(new Paragraph("123 Your Street"))
+                .setBorder(Border.NO_BORDER);
+
+        billingTable.addCell(billedToCell);
+        billingTable.addCell(yourCompanyCell);
+        document.add(billingTable);
+    }
+
+    private void addItemsTable(Document document, QuoteEntity quoteEntity) {
+        DeviceRgb headerColor = new DeviceRgb(90, 90, 90);
+        DeviceRgb bgColor = new DeviceRgb(236, 236, 236);
+        Border bottomBorder = new SolidBorder(1);
+
+        Table itemTable = new Table(4);
+        itemTable.setWidth(500);
+        itemTable.setBorder(Border.NO_BORDER);
+        itemTable.setMarginTop(11);
+
+        Stream.of("DESCRIPTION", "UNIT COST", "QTY/HR RATE", "AMOUNT")
+                .forEach(header -> itemTable.addHeaderCell(
+                        new Cell()
+                                .add(new Paragraph(header).setFontColor(headerColor).setFont(BOLD_FONT))
+                                .setBackgroundColor(bgColor)
+                                .setBorderBottom(bottomBorder)
+                                .setBorder(Border.NO_BORDER)
+                ));
+
+        quoteEntity.getItems().forEach(item -> {
+            itemTable.addCell(createItemCell(item.getDescription(), bgColor));
+            itemTable.addCell(createItemCell(formatCurrency(item.getRate()), bgColor));
+            itemTable.addCell(createItemCell(String.valueOf(item.getQuantity()), bgColor));
+            itemTable.addCell(createItemCell(formatCurrency(item.getTotal()), bgColor));
+        });
+
+        itemTable.setBorderBottom(bottomBorder);
+        document.add(itemTable);
+
+        Table totalsTable = new Table(2);
+        totalsTable.setWidth(500);
+        totalsTable.setBackgroundColor(bgColor);
+        totalsTable.setBorder(Border.NO_BORDER);
+
+        Cell totalsContent = new Cell()
+                .setBorder(Border.NO_BORDER)
+                .setTextAlignment(TextAlignment.RIGHT)
+                .setPadding(10);
+
+        totalsContent.add(new Paragraph("SUBTOTAL").setFontColor(headerColor).setFont(BOLD_FONT));
+        totalsContent.add(new Paragraph(formatCurrency(quoteEntity.getSubTotal())));
+        totalsContent.add(new Paragraph("TAX").setFontColor(headerColor).setFont(BOLD_FONT));
+        totalsContent.add(new Paragraph(formatCurrency(quoteEntity.getTaxAmount())));
+        totalsContent.add(new Paragraph("TOTAL").setFontColor(headerColor).setFont(BOLD_FONT));
+        totalsContent.add(new Paragraph(formatCurrency(quoteEntity.getSubTotal() + quoteEntity.getTaxAmount()))).setBold();
+
+        totalsTable.addCell(totalsContent);
+        totalsTable.addCell(new Cell().setBorder(Border.NO_BORDER));
+
+        document.add(totalsTable);
+
+    }
+
+    private void addFooter(Document document, QuoteEntity quoteEntity) {
+
+        Paragraph totalParagraph = new Paragraph()
+                .add(new Text("TOTAL\n")
+                        .setFontColor(new DeviceRgb(90, 90, 90))
+                        .setFont(BOLD_FONT)
+                        .setFontSize(13))
+                .add(new Text(formatCurrency(quoteEntity.getSubTotal() + quoteEntity.getTaxAmount()))
+                        .setFontColor(DeviceRgb.BLACK)
+                        .setFontSize(21))
+                .setTextAlignment(TextAlignment.RIGHT)
+                .setMarginTop(20)
+                .setMarginRight(30)
+                .setMarginBottom(10);
+
+        Paragraph terms = new Paragraph("Terms: Payment due within 30 days")
+                .setFontColor(new DeviceRgb(90, 90, 90))
+                .setFontSize(11)
+                .setTextAlignment(TextAlignment.LEFT)
+                .setMarginBottom(20);
+
+        Div footer = new Div()
+                .add(totalParagraph)
+                .add(terms)
+                .setWidth(500)
+                .setHorizontalAlignment(HorizontalAlignment.RIGHT);
+
+        document.add(footer);
+    }
+
+    private Image addLogo(PdfDocument pdfDocument) throws IOException {
+        try {
+            ImageData imageData = ImageDataFactory.create("C:\\Users\\HP\\Downloads\\7a3ec529632909.55fc107b84b8c.png");
+            Image logo = new Image(imageData);
+            logo.setAutoScale(true);
+            logo.setHeight(15);
+            return logo;
+        } catch (Exception e) {
+            PdfFormXObject xObject = new PdfFormXObject(new Rectangle(100, 30));
+            new PdfCanvas(xObject, pdfDocument)
+                    .beginText()
+                    .setFontAndSize(PdfFontFactory.createFont(StandardFonts.HELVETICA), 12)
+                    .moveText(5, 5)
+                    .showText("[YOUR LOGO]")
+                    .endText();
+            return new Image(xObject);
+        }
+    }
+
+    // Helper Function
+    
+    private String formatCurrency(double amount) {
+
+        return String.format("$%.2f", amount);
+    }
+
+    private Cell createItemCell(String content, DeviceRgb bgColor) {
+        return new Cell()
+                .add(new Paragraph(content).setFont(NORMAL_FONT))
+                .setBackgroundColor(bgColor)
+                .setBorder(Border.NO_BORDER)
+                .setPadding(5);
+    }
+}

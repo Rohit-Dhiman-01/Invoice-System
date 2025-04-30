@@ -70,13 +70,11 @@ public class InvoicePdfGeneration {
         }
     }
 
-    // asasdasdasdasd
     private Table createHeader(InvoiceEntity invoiceEntity) throws IOException {
         Table headerTable = new Table(2)
                 .setWidth(UnitValue.createPercentValue(100))
                 .setBackgroundColor(DARK_BLUE);
 
-        // Left Cell: TAX INVOICE
         Cell leftCell = new Cell()
                 .add(new Paragraph("TAX INVOICE")
                         .setFontColor(ColorConstants.WHITE)
@@ -86,8 +84,6 @@ public class InvoicePdfGeneration {
                 .setBorder(Border.NO_BORDER)
                 .setTextAlignment(TextAlignment.RIGHT);
 
-
-        // Right Cell: Invoice Details
         Cell rightCell = new Cell()
                 .add(new Paragraph("INVOICE NO:" + invoiceEntity.getInvoiceNumber()
                         + "\nDATE: " + formatDate(invoiceEntity.getInvoiceDate()))
@@ -126,7 +122,6 @@ public class InvoicePdfGeneration {
                         .add("\nGST NO:" + invoiceEntity.getCustomer().getGstNumber()))
                 .setBorder(Border.NO_BORDER);
 
-        // Payment Details
         Cell rightCell = new Cell()
                 .add(new Paragraph("Payment Due Date:" + formatDate(invoiceEntity.getDueDate())))
                 .setTextAlignment(TextAlignment.RIGHT)
@@ -142,7 +137,6 @@ public class InvoicePdfGeneration {
                 .setWidth(UnitValue.createPercentValue(100))
                 .setBorder(new SolidBorder(1));
 
-        // Header Row
         Stream.of("Description", "HSN Code", "Qty", "Rate", "Amount")
                 .forEach(header -> table.addCell(
                         new Cell()
@@ -150,7 +144,6 @@ public class InvoicePdfGeneration {
                                 .add(new Paragraph(header))));
 
 
-        // Data Rows
         for (ItemEntity item : invoiceEntity.getPurchaseOrder().getQuote().getItems()) {
             addRow(table, item.getDescription(), item.getHsnCode(),
                     String.valueOf(item.getQuantity()), String.valueOf(item.getRate()), String.valueOf(item.getTotal()));
@@ -163,7 +156,7 @@ public class InvoicePdfGeneration {
                 .setWidth(UnitValue.createPercentValue(100));
 
         double taxPercentage = (invoiceEntity.getTaxAmount() / invoiceEntity.getTotalAmount()) * 100;
-        // Grand Total Section
+
         Div totalDiv = new Div()
                 .add(new Paragraph("Tax Percentage: " + String.format("%.2f", taxPercentage) + "%"))
                 .add(new Paragraph("Balance Received: 0.0"))
@@ -211,14 +204,12 @@ public class InvoicePdfGeneration {
         Table footerTable = new Table(2)
                 .setWidth(UnitValue.createPercentValue(100));
 
-        // Business Name box with extra space
         Cell businessCell = new Cell()
                 .add(new Paragraph("For: Business Name")
                         .setFontSize(12)
                         .setPadding(20))
                 .setBorder(Border.NO_BORDER);
 
-        // Signature cell
         Cell signatureCell = new Cell()
                 .add(new Paragraph("Authorised Signature")
                         .setFontSize(12)

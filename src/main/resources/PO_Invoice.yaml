@@ -1,0 +1,546 @@
+openapi: 3.0.0
+
+info:
+  title: Invoice System PO & Invoice Management API
+  version: 1.0.0
+  description: |
+    API for managing PO & Invoice API
+
+servers:
+  - url: http://localhost:8080
+    description: Local Server
+
+tags:
+  - name: Invoice
+    description: Endpoints for managing Invoice
+  - name: PO
+    description: Endpoints for managing PO
+
+paths:
+  # InvoiceController endpoints
+  /customer/{customerId}/purchase-orders/{purchaseOrderId}/invoices:
+    post:
+      summary: Create a new invoice for a purchase order
+      tags:
+        - Invoices
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+        - name: purchaseOrderId
+          in: path
+          description: ID of the purchase order
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceDto'
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+              examples:
+                sampleCreateInvoice:
+                  summary: Sample response for created invoice
+                  value:
+                    id: 23
+                    invoiceNumber: "INV-2025-004"
+                    invoiceDate: "2025-04-15"
+                    dueDate: "2025-04-17"
+                    items:
+                      - id: 15
+                        itemName: "String"
+                        description: "String"
+                        quantity: 50
+                        rate: 100.0
+                        hsnCode: "12345678"
+                        taxPercent: 20.0
+                        total: 6000.0
+                      - id: 16
+                        itemName: "String"
+                        description: "String"
+                        quantity: 10
+                        rate: 200.0
+                        hsnCode: "12345673"
+                        taxPercent: 20.0
+                        total: 2400.0
+                    subTotal: 7000.0
+                    taxAmount: 1400.0
+                    totalAmount: 8400.0
+                    paymentStatus: "UNPAID"
+                    currency: "₹"
+
+  /customer/{customerId}/invoices:
+    get:
+      summary: Get all invoices for a customer
+      tags:
+        - Invoices
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: A list of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceResponse'
+              examples:
+                sampleInvoiceList:
+                  summary: Sample list of invoices for a customer
+                  value:
+                    - id: 23
+                      invoiceNumber: "INV-2025-004"
+                      invoiceDate: "2025-04-15"
+                      dueDate: "2025-04-17"
+                      items:
+                        - id: 15
+                          itemName: "String"
+                          description: "String"
+                          quantity: 50
+                          rate: 100.0
+                          hsnCode: "12345678"
+                          taxPercent: 20.0
+                          total: 6000.0
+                        - id: 16
+                          itemName: "String"
+                          description: "String"
+                          quantity: 10
+                          rate: 200.0
+                          hsnCode: "12345673"
+                          taxPercent: 20.0
+                          total: 2400.0
+                      subTotal: 7000.0
+                      taxAmount: 1400.0
+                      totalAmount: 8400.0
+                      paymentStatus: "UNPAID"
+                      currency: "₹"
+  
+  /customer/{customerId}/invoices/{invoiceId}:
+    get:
+      summary: Get a specific invoice by ID
+      tags:
+        - Invoices
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+        - name: invoiceId
+          in: path
+          description: ID of the invoice
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+              examples:
+                sampleInvoiceDetail:
+                  summary: Sample invoice detail
+                  value:
+                    id: 23
+                    invoiceNumber: "INV-2025-004"
+                    invoiceDate: "2025-04-15"
+                    dueDate: "2025-04-17"
+                    items:
+                      - id: 15
+                        itemName: "String"
+                        description: "String"
+                        quantity: 50
+                        rate: 100.0
+                        hsnCode: "12345678"
+                        taxPercent: 20.0
+                        total: 6000.0
+                      - id: 16
+                        itemName: "String"
+                        description: "String"
+                        quantity: 10
+                        rate: 200.0
+                        hsnCode: "12345673"
+                        taxPercent: 20.0
+                        total: 2400.0
+                    subTotal: 7000.0
+                    taxAmount: 1400.0
+                    totalAmount: 8400.0
+                    paymentStatus: "UNPAID"
+                    currency: "₹"
+  
+  /customer/{customerId}/invoices/{invoiceId}/status:
+    put:
+      summary: Approve an invoice
+      tags:
+        - Invoices
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+        - name: invoiceId
+          in: path
+          description: ID of the invoice
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveDto'
+      responses:
+        '200':
+          description: Invoice approved
+
+  # PurchaseOrderController endpoints
+  /vendor/{vendorId}/quote/{quoteId}/purchase-orders:
+    post:
+      summary: Create a new purchase order for a quote
+      tags:
+        - PurchaseOrders
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+        - name: quoteId
+          in: path
+          description: ID of the quote
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrderDto'
+      responses:
+        '201':
+          description: Purchase order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponse'
+
+  /vendor/{vendorId}/purchase-orders:
+    get:
+      summary: Get all purchase orders for a vendor
+      tags:
+        - PurchaseOrders
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+      responses:
+        '200':
+          description: A list of purchase orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOrderResponse'
+              examples:
+                sampleList:
+                  summary: Sample list of purchase orders
+                  value:
+                    - id: 8
+                      poNumber: "PO-2025-005"
+                      poDate: "2025-04-15"
+                      shippingAddress: "STRING"
+                      items:
+                        - id: 15
+                          itemName: "String"
+                          description: "STRING"
+                          quantity: 50
+                          rate: 100.0
+                          hsnCode: "12345678"
+                          taxPercent: 20.0
+                          total: 6000.0
+                        - id: 16
+                          itemName: "String"
+                          description: "STRING"
+                          quantity: 10
+                          rate: 200.0
+                          hsnCode: "12345673"
+                          taxPercent: 20.0
+                          total: 2400.0
+                      subTotal: 7000.0
+                      taxAmount: 1400.0
+                      totalAmount: 8400.0
+                      status: "DRAFT"
+                      currency: "₹"
+
+  /vendor/{vendorId}/purchase-orders/{purchaseOrderId}:
+    get:
+      summary: Get a specific purchase order by ID
+      tags:
+        - PurchaseOrders
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+        - name: purchaseOrderId
+          in: path
+          description: ID of the purchase order
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Purchase order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponse'
+              examples:
+                sampleDetail:
+                  summary: Sample purchase order detail
+                  value:
+                    id: 8
+                    poNumber: "PO-2025-005"
+                    poDate: "2025-04-15"
+                    shippingAddress: "STRING"
+                    items:
+                      - id: 15
+                        itemName: "String"
+                        description: "STRING"
+                        quantity: 50
+                        rate: 100.0
+                        hsnCode: "12345678"
+                        taxPercent: 20.0
+                        total: 6000.0
+                      - id: 16
+                        itemName: "String"
+                        description: "STRING"
+                        quantity: 10
+                        rate: 200.0
+                        hsnCode: "12345673"
+                        taxPercent: 20.0
+                        total: 2400.0
+                    subTotal: 7000.0
+                    taxAmount: 1400.0
+                    totalAmount: 8400.0
+                    status: "APPROVED"
+                    currency: "₹"
+
+  /vendor/{vendorId}/purchase-orders/{purchaseOrderId}/status:
+    put:
+      summary: Approve a purchase order
+      tags:
+        - PurchaseOrders
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+        - name: purchaseOrderId
+          in: path
+          description: ID of the purchase order
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveDto'
+      responses:
+        '200':
+          description: Purchase order approved
+
+
+components:
+  parameters:
+    CustomerId:
+      name: customerId
+      in: path
+      description: ID of the customer
+      required: true
+      schema:
+        type: integer
+        format: int64
+    VendorId:
+      name: vendorId
+      in: path
+      description: ID of the vendor
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  schemas:
+    ApproveDto:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    InvoiceDto:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        description:
+          type: string
+      required:
+        - amount
+        - description
+
+    InvoiceResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        customerId:
+          type: integer
+          format: int64
+        purchaseOrderId:
+          type: integer
+          format: int64
+        amount:
+          type: number
+          format: double
+        status:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - customerId
+        - purchaseOrderId
+        - amount
+        - status
+        - description
+        - createdAt
+
+    PurchaseOrderDto:
+      type: object
+      properties:
+        poNumber:
+          type: string
+        poDate:
+          type: string
+          format: date
+        shippingAddress:
+          type: string
+        currency:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              itemName:
+                type: string
+              description:
+                type: string
+              quantity:
+                type: integer
+              rate:
+                type: number
+                format: double
+              hsnCode:
+                type: string
+              taxPercent:
+                type: number
+                format: double
+            required:
+              - itemName
+              - quantity
+              - rate
+              - hsnCode
+              - taxPercent
+      required:
+        - poNumber
+        - poDate
+        - shippingAddress
+        - items
+
+    PurchaseOrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        vendorId:
+          type: integer
+          format: int64
+        quoteId:
+          type: integer
+          format: int64
+        poNumber:
+          type: string
+        poDate:
+          type: string
+          format: date
+        shippingAddress:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              itemName:
+                type: string
+              description:
+                type: string
+              quantity:
+                type: integer
+              rate:
+                type: number
+                format: double
+              hsnCode:
+                type: string
+              taxPercent:
+                type: number
+                format: double
+              total:
+                type: number
+                format: double
+            required:
+              - id
+              - itemName
+              - quantity
+              - rate
+              - hsnCode
+              - taxPercent
+              - total
+        subTotal:
+          type: number
+          format: double
+        taxAmount:
+          type: number
+          format: double
+        totalAmount:
+          type: number
+          format: double
+        status:
+          type: string
+        currency:
+          type: string
+      required:
+        - id
+        - vendorId
+        - quoteId
+        - poNumber
+        - poDate
+        - shippingAddress
+        - items
+        - subTotal
+        - taxAmount
+        - totalAmount
+        - status
+        - currency

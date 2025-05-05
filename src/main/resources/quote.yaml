@@ -42,6 +42,7 @@ paths:
                   rate: 100
                   hsnCode: "12345678"
                   taxPercent: 18
+              currency: "INR"
       responses:
         '201':
           description: Quote created successfully
@@ -150,7 +151,7 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        '204':
           description: Quote by ID for customer with Id successfully delete
         '404':
           description: Quote not found
@@ -168,6 +169,7 @@ components:
         - subTotal
         - taxAmount
         - status
+        - currency
         - items
       properties:
         id:
@@ -197,6 +199,10 @@ components:
           type: string
           enum: [ DRAFT, APPROVED, SENT, ACCEPTED, REJECTED ]
           example: "DRAFT"
+        currency:
+          type: string
+          example: "INR"
+
         items:
           type: array
           items:
@@ -255,11 +261,18 @@ components:
           type: string
           format: date
           example: "2025-04-16"
+        currency:
+          type: string
+          example: "INR"
         items:
           type: array
           items:
             $ref: '#/components/schemas/QuoteItem'
-
+      required:
+        - quoteDate
+        - validUntil
+        - currency
+        - items
     QuoteItem:
       type: object
       required:

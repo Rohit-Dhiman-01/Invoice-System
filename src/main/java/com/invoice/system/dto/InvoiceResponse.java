@@ -16,6 +16,7 @@ public class InvoiceResponse {
   private Double subTotal;
   private Double taxAmount;
   private Double totalAmount;
+  private Double dueAmount;
   private InvoiceEntityPaymentStatus paymentStatus;
   private String currency;
 }

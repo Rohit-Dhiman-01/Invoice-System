@@ -2,7 +2,7 @@ package com.invoice.system.service.impl;
 
 import com.invoice.system.model.InvoiceEntity;
 import com.invoice.system.model.ItemEntity;
-import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -21,10 +21,7 @@ import com.itextpdf.layout.properties.UnitValue;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Stream;
@@ -35,9 +32,9 @@ public class InvoicePdfGeneration {
     private static final DeviceRgb LIGHT_BLUE = new DeviceRgb(173, 216, 230);
     private static final DeviceRgb BLACK = new DeviceRgb(0, 0, 0);
 
-
     @SneakyThrows
     public ByteArrayInputStream generateInvoicePdf(InvoiceEntity invoiceEntity) {
+        PdfFont font = loadUnicodeFont();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PdfWriter writer = new PdfWriter(outputStream);
         PdfDocument pdf = new PdfDocument(writer);
@@ -45,19 +42,20 @@ public class InvoicePdfGeneration {
         Div mainContainer = new Div()
                 .setBorder(new SolidBorder(BLACK, 3));
 
-        mainContainer.add(createHeader(invoiceEntity));
+        System.out.println(invoiceEntity.getPurchaseOrder().getQuote().getCurrency());
+        mainContainer.add(createHeader(invoiceEntity, font));
 
-        mainContainer.add(createCompanyDetails(invoiceEntity).setMarginTop(0));
+        mainContainer.add(createCompanyDetails(invoiceEntity, font).setMarginTop(0));
 
-        mainContainer.add(createBillToSection(invoiceEntity).setMarginTop(0));
+        mainContainer.add(createBillToSection(invoiceEntity, font).setMarginTop(0));
 
-        mainContainer.add(createItemsTable(invoiceEntity).setMarginTop(0));
+        mainContainer.add(createItemsTable(invoiceEntity, font).setMarginTop(0));
 
-        mainContainer.add(createTotalAndTermsSection(invoiceEntity));
+        mainContainer.add(createTotalAndTermsSection(invoiceEntity, font));
 
-        mainContainer.add(createTotalAmountBox(invoiceEntity));
+        mainContainer.add(createTotalAmountBox(invoiceEntity, font));
 
-        mainContainer.add(createFooter());
+        mainContainer.add(createFooter(font));
 
         document.add(mainContainer);
         document.close();
@@ -70,7 +68,7 @@ public class InvoicePdfGeneration {
         }
     }
 
-    private Table createHeader(InvoiceEntity invoiceEntity) throws IOException {
+    private Table createHeader(InvoiceEntity invoiceEntity, PdfFont font) throws IOException {
         Table headerTable = new Table(2)
                 .setWidth(UnitValue.createPercentValue(100))
                 .setBackgroundColor(DARK_BLUE);
@@ -80,7 +78,7 @@ public class InvoicePdfGeneration {
                         .setFontColor(ColorConstants.WHITE)
                         .setFontSize(20)
                         .setPadding(5)
-                        .setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)))
+                        .setFont(font))
                 .setBorder(Border.NO_BORDER)
                 .setTextAlignment(TextAlignment.RIGHT);
 
@@ -96,7 +94,7 @@ public class InvoicePdfGeneration {
         return headerTable;
     }
 
-    private Div createCompanyDetails(InvoiceEntity invoiceEntity) {
+    private Div createCompanyDetails(InvoiceEntity invoiceEntity, PdfFont font) {
         return new Div()
                 .setBorder(new SolidBorder(1))
                 .setPadding(1)
@@ -108,7 +106,7 @@ public class InvoicePdfGeneration {
                 .setBorderBottom(new SolidBorder(1));
     }
 
-    private Div createBillToSection(InvoiceEntity invoiceEntity) {
+    private Div createBillToSection(InvoiceEntity invoiceEntity, PdfFont font) {
         Table table = new Table(2)
                 .setWidth(UnitValue.createPercentValue(100))
                 .setBackgroundColor(LIGHT_BLUE)
@@ -132,38 +130,49 @@ public class InvoicePdfGeneration {
         return new Div().add(table);
     }
 
-    private Table createItemsTable(InvoiceEntity invoiceEntity) throws IOException {
-        Table table = new Table(new float[]{3, 2, 2, 2, 2})
+    private Table createItemsTable(InvoiceEntity invoiceEntity, PdfFont font) {
+        Table table = new Table(new float[]{2, 2, 2, 1, 2, 2, 2})
                 .setWidth(UnitValue.createPercentValue(100))
                 .setBorder(new SolidBorder(1));
 
-        Stream.of("Description", "HSN Code", "Qty", "Rate", "Amount")
+        Stream.of("Item Name", "Description", "HSN Code", "QTY", "Rate", "Tax", "Amount")
                 .forEach(header -> table.addCell(
                         new Cell()
                                 .setBackgroundColor(ColorConstants.LIGHT_GRAY)
-                                .add(new Paragraph(header))));
+                                .add(new Paragraph(header)
+                                        .setFont(font))));
 
 
         for (ItemEntity item : invoiceEntity.getPurchaseOrder().getQuote().getItems()) {
-            addRow(table, item.getDescription(), item.getHsnCode(),
-                    String.valueOf(item.getQuantity()), String.valueOf(item.getRate()), String.valueOf(item.getTotal()));
+            addRow(table, font, item.getItemName(), item.getDescription(), item.getHsnCode(),
+                    String.valueOf(item.getQuantity()),
+                    invoiceEntity.getPurchaseOrder().getQuote().getCurrency() + item.getRate(),
+                    item.getTaxPercent() + "%",
+                    invoiceEntity.getPurchaseOrder().getQuote().getCurrency() + item.getTotal());
         }
         return table;
     }
 
-    private Table createTotalAndTermsSection(InvoiceEntity invoiceEntity) throws IOException {
+    private Table createTotalAndTermsSection(InvoiceEntity invoiceEntity, PdfFont font) {
         Table table = new Table(2)
                 .setWidth(UnitValue.createPercentValue(100));
 
         double taxPercentage = (invoiceEntity.getTaxAmount() / invoiceEntity.getTotalAmount()) * 100;
 
         Div totalDiv = new Div()
-                .add(new Paragraph("Tax Percentage: " + String.format("%.2f", taxPercentage) + "%"))
-                .add(new Paragraph("Balance Received: 0.0"))
-                .add(new Paragraph("Balance Due: 0.0"))
-                .add(new Paragraph("Grand Total: " + invoiceEntity.getTotalAmount()).setBold()
+                .add(new Paragraph("Tax Percentage: " + String.format("%.2f", taxPercentage) + "%")
+                        .setFont(font))
+                .add(new Paragraph("Balance Received: " + invoiceEntity.getPurchaseOrder().getQuote().getCurrency() +
+                        (invoiceEntity.getTotalAmount() - invoiceEntity.getDueAmount()))
+                        .setFont(font))
+                .add(new Paragraph("Balance Due: " + invoiceEntity.getPurchaseOrder().getQuote().getCurrency() +
+                        invoiceEntity.getDueAmount())
+                        .setFont(font))
+                .add(new Paragraph("Grand Total: " + invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
+                        + invoiceEntity.getTotalAmount()).setBold()
                         .setBackgroundColor(DARK_BLUE)
                         .setFontColor(ColorConstants.WHITE)
+                        .setFont(font)
                         .setBorder(new SolidBorder(1)));
 
         Cell totalCell = new Cell()
@@ -172,12 +181,11 @@ public class InvoicePdfGeneration {
 
         // Terms & Conditions
         Div termsDiv = new Div()
-                .setPadding(5)
+                .setPadding(1)
                 .add(new Paragraph("Terms & conditions").setBold())
-                .add(new Paragraph("1. "))
-                .add(new Paragraph("2. "))
-                .add(new Paragraph("3. "))
-                .add(new Paragraph("4. "));
+                .add(new Paragraph("1. Payment is due within 30 days from the date of invoice.").setFont(font))
+                .add(new Paragraph("2. Goods once sold will not be taken back or exchanged.").setFont(font))
+                .add(new Paragraph("3. Delivery shall be made within the agreed timeframe.").setFont(font));
 
         Cell termsCell = new Cell()
                 .add(termsDiv)
@@ -189,18 +197,20 @@ public class InvoicePdfGeneration {
         return table;
     }
 
-    private Div createTotalAmountBox(InvoiceEntity invoiceEntity) throws IOException {
+    private Div createTotalAmountBox(InvoiceEntity invoiceEntity, PdfFont font) throws IOException {
         return new Div()
-                .add(new Paragraph("Total Amount $ - In Words): " + convertToWords(invoiceEntity.getTotalAmount().intValue()))
-                        .setFont(createBoldFont())
+                .add(new Paragraph("Total Amount - In Words: " + invoiceEntity.getPurchaseOrder().getQuote().getCurrency() + " "
+                        + convertToWords(invoiceEntity.getTotalAmount().intValue()))
                         .setFontSize(12)
+                        .setFont(font)
                 )
                 .setBorder(new SolidBorder(1))
+                .setFont(font)
                 .setBackgroundColor(ColorConstants.LIGHT_GRAY)
                 .setPadding(10);
     }
 
-    private Table createFooter() throws IOException {
+    private Table createFooter(PdfFont font) {
         Table footerTable = new Table(2)
                 .setWidth(UnitValue.createPercentValue(100));
 
@@ -208,13 +218,15 @@ public class InvoicePdfGeneration {
                 .add(new Paragraph("For: Business Name")
                         .setFontSize(12)
                         .setPadding(20))
-                .setBorder(Border.NO_BORDER);
+                .setBorder(Border.NO_BORDER)
+                .setFont(font);
 
         Cell signatureCell = new Cell()
                 .add(new Paragraph("Authorised Signature")
                         .setFontSize(12)
                         .setPadding(20))
-                .setBorder(Border.NO_BORDER);
+                .setBorder(Border.NO_BORDER)
+                .setFont(font);
 
         footerTable.addCell(businessCell);
         footerTable.addCell(signatureCell);
@@ -223,15 +235,24 @@ public class InvoicePdfGeneration {
 
 //    Helper Methods
 
-    private void addRow(Table table, String... cells) {
-        for (String cell : cells) {
-            table.addCell(new Cell().add(new Paragraph(cell)));
+    public static PdfFont loadUnicodeFont() {
+        try (InputStream is =
+                     POPdfGeneration.class.getResourceAsStream("/fonts/NotoSans-Regular.ttf")) {
+            if (is == null) {
+                throw new IOException("Font not found in /fonts/");
+            }
+            return PdfFontFactory.createFont(is.readAllBytes(), PdfEncodings.IDENTITY_H);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load Unicode font", e);
         }
     }
 
-    private PdfFont createBoldFont() throws IOException {
-        return PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+    private void addRow(Table table, PdfFont font, String... cells) {
+        for (String cell : cells) {
+            table.addCell(new Cell().add(new Paragraph(cell).setFont(font)));
+        }
     }
+
 
     private String formatDate(LocalDate date) {
         if (date == null) return "";
@@ -242,7 +263,6 @@ public class InvoicePdfGeneration {
         if (n == 0)
             return "Zero";
 
-        // Key Numeric values and their corresponding English words
         int[] values = {
                 1000000000, 1000000, 1000, 100, 90, 80, 70,
                 60, 50, 40, 30, 20, 19, 18, 17, 16, 15, 14,
@@ -265,24 +285,17 @@ public class InvoicePdfGeneration {
     private String convertToWordsRec(int n, int[] values, String[] words) {
         String res = "";
 
-        // Iterating over all key Numeric values
         for (int i = 0; i < values.length; i++) {
             int value = values[i];
             String word = words[i];
 
-            // If the number is greater than or equal to current numeric value
             if (n >= value) {
 
-                // Append the quotient part
-                // If the number is greater than or equal to 100
-                // then only we need to handle that
                 if (n >= 100)
                     res += convertToWordsRec(n / value, values, words) + " ";
 
-                // Append the word for numeric value
                 res += word;
 
-                // Append the remainder part
                 if (n % value > 0)
                     res += " " + convertToWordsRec(n % value, values, words);
 

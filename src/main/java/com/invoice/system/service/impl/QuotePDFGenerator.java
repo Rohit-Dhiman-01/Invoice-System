@@ -1,6 +1,7 @@
 package com.invoice.system.service.impl;
 
 import com.invoice.system.model.QuoteEntity;
+import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
@@ -23,6 +24,7 @@ import lombok.SneakyThrows;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.stream.Stream;
 
 public class QuotePDFGenerator {
@@ -40,14 +42,15 @@ public class QuotePDFGenerator {
 
     @SneakyThrows
     public ByteArrayInputStream generateQuotePdf(QuoteEntity quoteEntity) {
+        PdfFont font = loadUnicodeFont();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfDocument pdf = new PdfDocument(new PdfWriter(baos));
         Document document = new Document(pdf);
 
         addHeader(document, quoteEntity);
         addBillingInfo(document, quoteEntity);
-        addItemsTable(document, quoteEntity);
-        addFooter(document, quoteEntity);
+        addItemsTable(document, quoteEntity, font);
+        addFooter(document, quoteEntity, font);
         document.close();
         return new ByteArrayInputStream(baos.toByteArray());
     }
@@ -123,17 +126,18 @@ public class QuotePDFGenerator {
         document.add(billingTable);
     }
 
-    private void addItemsTable(Document document, QuoteEntity quoteEntity) {
+    private void addItemsTable(Document document, QuoteEntity quoteEntity, PdfFont font) {
         DeviceRgb headerColor = new DeviceRgb(90, 90, 90);
         DeviceRgb bgColor = new DeviceRgb(236, 236, 236);
         Border bottomBorder = new SolidBorder(1);
 
-        Table itemTable = new Table(4);
+        Table itemTable = new Table(5);
         itemTable.setWidth(500);
+        itemTable.setFont(font);
         itemTable.setBorder(Border.NO_BORDER);
         itemTable.setMarginTop(11);
 
-        Stream.of("DESCRIPTION", "UNIT COST", "QTY/HR RATE", "AMOUNT")
+        Stream.of("NAME", "DESCRIPTION", "UNIT COST", "QTY/HR RATE", "AMOUNT")
                 .forEach(header -> itemTable.addHeaderCell(
                         new Cell()
                                 .add(new Paragraph(header).setFontColor(headerColor).setFont(BOLD_FONT))
@@ -143,10 +147,11 @@ public class QuotePDFGenerator {
                 ));
 
         quoteEntity.getItems().forEach(item -> {
+            itemTable.addCell(createItemCell(item.getItemName(), bgColor));
             itemTable.addCell(createItemCell(item.getDescription(), bgColor));
-            itemTable.addCell(createItemCell(formatCurrency(item.getRate()), bgColor));
+            itemTable.addCell(createItemCell(formatCurrency(item.getRate(), quoteEntity), bgColor));
             itemTable.addCell(createItemCell(String.valueOf(item.getQuantity()), bgColor));
-            itemTable.addCell(createItemCell(formatCurrency(item.getTotal()), bgColor));
+            itemTable.addCell(createItemCell(formatCurrency(item.getTotal(), quoteEntity), bgColor));
         });
 
         itemTable.setBorderBottom(bottomBorder);
@@ -162,12 +167,19 @@ public class QuotePDFGenerator {
                 .setTextAlignment(TextAlignment.RIGHT)
                 .setPadding(10);
 
-        totalsContent.add(new Paragraph("SUBTOTAL").setFontColor(headerColor).setFont(BOLD_FONT));
-        totalsContent.add(new Paragraph(formatCurrency(quoteEntity.getSubTotal())));
-        totalsContent.add(new Paragraph("TAX").setFontColor(headerColor).setFont(BOLD_FONT));
-        totalsContent.add(new Paragraph(formatCurrency(quoteEntity.getTaxAmount())));
-        totalsContent.add(new Paragraph("TOTAL").setFontColor(headerColor).setFont(BOLD_FONT));
-        totalsContent.add(new Paragraph(formatCurrency(quoteEntity.getSubTotal() + quoteEntity.getTaxAmount()))).setBold();
+        totalsContent.add(new Paragraph()
+                .add(new Text("SUBTOTAL: ").setFontColor(headerColor).setFont(BOLD_FONT))
+                .add(new Text(formatCurrency(quoteEntity.getSubTotal(), quoteEntity)).setFont(font))
+        );
+        totalsContent.add(new Paragraph()
+                .add(new Text("TAX: ").setFontColor(headerColor).setFont(BOLD_FONT))
+                .add(new Text(formatCurrency(quoteEntity.getTaxAmount(), quoteEntity)).setFont(font))
+        );
+
+        totalsContent.add(new Paragraph()
+                .add(new Text("TOTAL: ").setFontColor(headerColor).setFont(BOLD_FONT))
+                .add(new Text(formatCurrency(quoteEntity.getSubTotal() + quoteEntity.getTaxAmount(), quoteEntity))).setBold().setFont(font)
+        );
 
         totalsTable.addCell(totalsContent);
         totalsTable.addCell(new Cell().setBorder(Border.NO_BORDER));
@@ -176,16 +188,17 @@ public class QuotePDFGenerator {
 
     }
 
-    private void addFooter(Document document, QuoteEntity quoteEntity) {
+    private void addFooter(Document document, QuoteEntity quoteEntity, PdfFont font) {
 
         Paragraph totalParagraph = new Paragraph()
                 .add(new Text("TOTAL\n")
                         .setFontColor(new DeviceRgb(90, 90, 90))
                         .setFont(BOLD_FONT)
                         .setFontSize(13))
-                .add(new Text(formatCurrency(quoteEntity.getSubTotal() + quoteEntity.getTaxAmount()))
+                .add(new Text(formatCurrency(quoteEntity.getSubTotal() + quoteEntity.getTaxAmount(), quoteEntity))
                         .setFontColor(DeviceRgb.BLACK)
-                        .setFontSize(21))
+                        .setFontSize(21)
+                        .setFont(font))
                 .setTextAlignment(TextAlignment.RIGHT)
                 .setMarginTop(20)
                 .setMarginRight(30)
@@ -226,10 +239,21 @@ public class QuotePDFGenerator {
     }
 
     // Helper Function
-    
-    private String formatCurrency(double amount) {
+    public static PdfFont loadUnicodeFont() {
+        try (InputStream is =
+                     POPdfGeneration.class.getResourceAsStream("/fonts/NotoSans-Regular.ttf")) {
+            if (is == null) {
+                throw new IOException("Font not found in /fonts/");
+            }
+            return PdfFontFactory.createFont(is.readAllBytes(), PdfEncodings.IDENTITY_H);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load Unicode font", e);
+        }
+    }
 
-        return String.format("$%.2f", amount);
+    private String formatCurrency(double amount, QuoteEntity quoteEntity) {
+
+        return String.format("%s%.2f", quoteEntity.getCurrency(), amount);
     }
 
     private Cell createItemCell(String content, DeviceRgb bgColor) {

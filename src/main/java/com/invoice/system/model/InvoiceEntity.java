@@ -36,6 +36,8 @@ public class InvoiceEntity extends AuditInfo {
   @Column(name = "totalAmount")
   private Double totalAmount;
 
+  private Double dueAmount;
+
   @Column(name = "paymentStatus")
   @Enumerated(EnumType.STRING)
   private InvoiceEntityPaymentStatus paymentStatus;

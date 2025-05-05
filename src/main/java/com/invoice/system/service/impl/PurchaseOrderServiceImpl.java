@@ -58,7 +58,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         quoteRepository
             .findById(quoteId)
             .orElseThrow(() -> new QuoteNotFoundException("Quote Not Found"));
-    if (quote.getStatus().equals(QuoteStatus.DRAFT)) {
+    if (!quote.getStatus().equals(QuoteStatus.ACCEPTED)) {
       throw new QuoteNotFoundException("Quote Not Approved");
     }
     if (quote.getPurchaseOrder() != null) {

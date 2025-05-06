@@ -17,4 +17,6 @@ public interface QuoteRepository extends JpaRepository<QuoteEntity, Long> {
       @Param("quoteId") Long Id, @Param("customerId") Long customerId);
 
   Optional<QuoteEntity> findByIdAndCustomerId(Long id, Long customerId);
+
+  Optional<QuoteEntity> findByQuoteNumberIgnoreCase(String quoteNumber);
 }

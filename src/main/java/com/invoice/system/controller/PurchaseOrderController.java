@@ -4,8 +4,10 @@ import com.invoice.system.dto.ApproveDto;
 import com.invoice.system.dto.PurchaseOrderDto;
 import com.invoice.system.dto.PurchaseOrderResponse;
 import com.invoice.system.service.PurchaseOrderService;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -43,9 +45,10 @@ public class PurchaseOrderController {
   }
 
   @GetMapping("/purchase-orders/{purchaseOrderId}/pdf")
-  public ResponseEntity<byte[]> downloadPurchaseOrderPdf(
+  public ResponseEntity<InputStreamResource> downloadPurchaseOrderPdf(
       @PathVariable Long vendorId, @PathVariable Long purchaseOrderId) {
-    byte[] pdfBytes = purchaseOrderService.generatePurchaseOrderPdf(vendorId, purchaseOrderId);
+    ByteArrayInputStream pdfBytes =
+        purchaseOrderService.generatePurchaseOrderPdf(vendorId, purchaseOrderId);
     return ResponseEntity.ok()
         .header(
             HttpHeaders.CONTENT_DISPOSITION,
@@ -53,7 +56,7 @@ public class PurchaseOrderController {
                 + getPurchaseOrderById(vendorId, purchaseOrderId).getBody().getPoNumber()
                 + ".pdf")
         .contentType(MediaType.APPLICATION_PDF)
-        .body(pdfBytes);
+        .body(new InputStreamResource(pdfBytes));
   }
 
   @PutMapping("/purchase-orders/{purchaseOrderId}/status")

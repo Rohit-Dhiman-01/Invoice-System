@@ -32,9 +32,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class POPdfGeneration {
   private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,##0.00");
-  private static final PdfFont font = loadUnicodeFont();
 
   public void addWatermark(PdfDocument pdfDoc, PurchaseOrderResponse purchaseOrder) {
+    PdfFont font = loadUnicodeFont();
     int pageCount = pdfDoc.getNumberOfPages();
 
     String watermarkText =
@@ -76,19 +76,20 @@ public class POPdfGeneration {
   }
 
   void generatePdfContent(Document document, PurchaseOrderResponse purchaseOrder) {
+    PdfFont font = loadUnicodeFont();
     document.setMargins(30, 30, 30, 30);
-    addCompanyHeader(document);
+    addCompanyHeader(document, font);
     document.add(new Paragraph("\n").setMarginBottom(5));
-    addPurchaseOrderInfo(document, purchaseOrder);
+    addPurchaseOrderInfo(document, purchaseOrder, font);
     document.add(new Paragraph("\n").setMarginBottom(5));
-    addItemsTable(document, purchaseOrder);
+    addItemsTable(document, purchaseOrder, font);
     document.add(new Paragraph("\n").setMarginBottom(5));
-    addSummarySection(document, purchaseOrder);
+    addSummarySection(document, purchaseOrder, font);
     document.add(new Paragraph("\n").setMarginBottom(5));
-    addFooter(document);
+    addFooter(document, font);
   }
 
-  public void addCompanyHeader(Document document) {
+  public void addCompanyHeader(Document document, PdfFont font) {
     DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
 
     Table headerTable =
@@ -134,7 +135,8 @@ public class POPdfGeneration {
     document.add(ls);
   }
 
-  public void addPurchaseOrderInfo(Document document, PurchaseOrderResponse purchaseOrder) {
+  public void addPurchaseOrderInfo(
+      Document document, PurchaseOrderResponse purchaseOrder, PdfFont font) {
     DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
 
     Table infoTable =
@@ -217,7 +219,7 @@ public class POPdfGeneration {
     return new Cell().add(p).setBorder(Border.NO_BORDER).setPadding(4);
   }
 
-  public void addItemsTable(Document document, PurchaseOrderResponse purchaseOrder) {
+  public void addItemsTable(Document document, PurchaseOrderResponse purchaseOrder, PdfFont font) {
     DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
 
     Table itemsTable =
@@ -296,7 +298,8 @@ public class POPdfGeneration {
     return createCell(text, alternate, font, false);
   }
 
-  public void addSummarySection(Document document, PurchaseOrderResponse purchaseOrder) {
+  public void addSummarySection(
+      Document document, PurchaseOrderResponse purchaseOrder, PdfFont font) {
     DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
 
     Table summaryLayout =
@@ -398,7 +401,7 @@ public class POPdfGeneration {
     document.add(summaryLayout);
   }
 
-  public void addFooter(Document document) {
+  public void addFooter(Document document, PdfFont font) {
     DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
 
     document.add(new Paragraph("\n").setMarginBottom(5));

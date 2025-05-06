@@ -11,9 +11,9 @@ servers:
     description: Local Server
 
 tags:
-  - name: Invoice
+  - name: Invoices
     description: Endpoints for managing Invoice
-  - name: PO
+  - name: PurchaseOrders
     description: Endpoints for managing PO
 
 paths:

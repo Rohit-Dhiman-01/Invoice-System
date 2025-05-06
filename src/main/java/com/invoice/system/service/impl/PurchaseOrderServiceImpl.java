@@ -15,6 +15,7 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import jakarta.transaction.Transactional;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.Year;
 import java.util.List;
@@ -105,7 +106,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
   }
 
   @Override
-  public byte[] generatePurchaseOrderPdf(Long vendorId, Long purchaseOrderId) {
+  public ByteArrayInputStream generatePurchaseOrderPdf(Long vendorId, Long purchaseOrderId) {
     PurchaseOrderResponse purchaseOrder = getPurchaseOrderById(vendorId, purchaseOrderId);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -123,7 +124,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
       e.printStackTrace();
     }
 
-    return out.toByteArray();
+    return new ByteArrayInputStream(out.toByteArray());
   }
 
   @Override

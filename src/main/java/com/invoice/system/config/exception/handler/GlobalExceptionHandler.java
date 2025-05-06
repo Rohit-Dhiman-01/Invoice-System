@@ -23,7 +23,8 @@ public class GlobalExceptionHandler {
     CurrencyNotFoundException.class
   })
   public ResponseEntity<ErrorDetails> handleNotFound(RuntimeException ex) {
-    return ResponseEntity.ok(new ErrorDetails(ex.getMessage(), HttpStatus.NOT_FOUND.value()));
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorDetails(ex.getMessage(), HttpStatus.NOT_FOUND.value()));
   }
 
   @ExceptionHandler(ConstraintViolationException.class)

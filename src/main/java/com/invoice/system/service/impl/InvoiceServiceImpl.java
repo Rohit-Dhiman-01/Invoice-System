@@ -73,6 +73,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     invoiceEntity.setSubTotal(purchaseOrder.getSubTotal());
     invoiceEntity.setTaxAmount(purchaseOrder.getTaxAmount());
     invoiceEntity.setTotalAmount(purchaseOrder.getTotalAmount());
+    invoiceEntity.setDueAmount(0.0);
     invoiceEntity.setCustomer(customer);
     //    invoiceEntity.setDueAmount(purchaseOrder.getTotalAmount());
     invoiceEntity.setPurchaseOrder(purchaseOrder);

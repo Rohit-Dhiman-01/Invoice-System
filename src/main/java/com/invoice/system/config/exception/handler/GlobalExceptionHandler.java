@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(RuntimeException.class)
-  public ResponseEntity<ErrorDetails> handleServerError(IllegalArgumentException exception) {
+  public ResponseEntity<ErrorDetails> handleServerError(RuntimeException exception) {
     return new ResponseEntity<>(
         new ErrorDetails(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()),
         HttpStatus.INTERNAL_SERVER_ERROR);

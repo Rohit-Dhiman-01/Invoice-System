@@ -51,7 +51,7 @@ public class PdfServiceImpl implements PdfService {
           quoteRepository
               .findByQuoteNumberIgnoreCase(id)
               .orElseThrow(() -> new QuoteNotFoundException("Quote Not Found "));
-      return quoteService.generateQuotePdf(quoteEntity.getCustomer().getId(), quoteEntity.getId());
+      return quoteService.generateQuotePdf(quoteEntity.getId(), quoteEntity.getCustomer().getId());
     } else {
       throw new RuntimeException("Invalid id " + id);
     }

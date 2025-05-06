@@ -47,14 +47,14 @@ public class QuoteEntity extends AuditInfo {
   private String currency;
 
   @JsonIgnore
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "customer_id")
+  @ManyToOne
+  @JoinColumn(name = "customer_id", referencedColumnName = "id")
   private CustomerEntity customer;
 
   @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "quote")
   private List<ItemEntity> items = new ArrayList<>();
 
   @JsonIgnore
-  @OneToOne(mappedBy = "quote")
+  @OneToOne(mappedBy = "quote", cascade = CascadeType.REMOVE)
   private PurchaseOrderEntity purchaseOrder;
 }

@@ -11,11 +11,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class InvoiceEntitySequenceNumberEntity {
-    @Id
-    private Integer year;
-    private Integer lastNumberUsed = 0;
+  @Id private Integer year;
+  private Integer lastNumberUsed = 0;
 
-    public InvoiceEntitySequenceNumberEntity(Integer year) {
-        this.year = year;
-    }
+  public InvoiceEntitySequenceNumberEntity(Integer year) {
+    this.year = year;
+  }
 }

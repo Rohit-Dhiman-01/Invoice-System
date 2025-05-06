@@ -53,4 +53,8 @@ public class PurchaseOrderEntity extends AuditInfo {
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
   private QuoteEntity quote;
+
+  @JsonIgnore
+  @OneToOne(mappedBy = "purchaseOrder", cascade = CascadeType.REMOVE)
+  private InvoiceEntity invoiceEntity;
 }

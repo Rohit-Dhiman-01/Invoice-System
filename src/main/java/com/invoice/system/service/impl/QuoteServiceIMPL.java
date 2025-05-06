@@ -193,8 +193,9 @@ public class QuoteServiceIMPL implements QuoteService {
       totalTax += tax;
     }
 
-    existingQuote.setSubTotal(totalBeforeTax + totalTax);
+    existingQuote.setSubTotal(totalBeforeTax);
     existingQuote.setTaxAmount(totalTax);
+    existingQuote.setTotalAmount(totalBeforeTax + totalTax);
 
     return quoteMapper.toQuoteResponse(quoteRepository.save(existingQuote));
   }
@@ -214,7 +215,8 @@ public class QuoteServiceIMPL implements QuoteService {
     if (quoteRepository.findByIdAndCustomerId(quoteId, customerId).isEmpty()) {
       throw new QuoteNotFoundException("Quote not found for customer");
     }
-    quoteRepository.deleteById(quoteId);
+    QuoteEntity quote = quoteRepository.findById(quoteId).get();
+    quoteRepository.delete(quote);
   }
 
   @Override

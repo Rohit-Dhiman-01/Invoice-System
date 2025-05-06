@@ -1,11 +1,10 @@
 package com.invoice.system.dto;
 
-import lombok.Data;
-
 import java.time.LocalDate;
+import lombok.Data;
 
 @Data
 public class InvoiceDto {
-    private LocalDate invoiceDate;
-    private LocalDate dueDate;
+  private LocalDate invoiceDate;
+  private LocalDate dueDate;
 }

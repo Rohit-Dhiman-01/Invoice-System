@@ -10,8 +10,11 @@ import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
+import com.itextpdf.kernel.pdf.extgstate.PdfExtGState;
 import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
@@ -19,10 +22,13 @@ import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 
@@ -39,6 +45,8 @@ public class QuotePDFGenerator {
     addBillingInfo(document, quoteEntity, font);
     addItemsTable(document, quoteEntity, font);
     addFooter(document, quoteEntity, font);
+    addSignature(document, font);
+    addWatermark(pdf, font);
     document.close();
     return new ByteArrayInputStream(baos.toByteArray());
   }
@@ -116,13 +124,15 @@ public class QuotePDFGenerator {
     DeviceRgb bgColor = new DeviceRgb(236, 236, 236);
     Border bottomBorder = new SolidBorder(1);
 
-    Table itemTable = new Table(5);
+    Table itemTable = new Table(6);
     itemTable.setWidth(500);
     itemTable.setFont(font);
-    itemTable.setBorder(Border.NO_BORDER);
+    //    itemTable.setBorder(new SolidBorder(1));
+    itemTable.setPadding(1);
     itemTable.setMarginTop(11);
+    itemTable.setTextAlignment(TextAlignment.CENTER);
 
-    Stream.of("NAME", "DESCRIPTION", "UNIT COST", "QTY/HR RATE", "AMOUNT")
+    Stream.of("NAME", "DESCRIPTION", "UNIT COST", "QUANTITY", "Tax", "AMOUNT")
         .forEach(
             header ->
                 itemTable.addHeaderCell(
@@ -137,10 +147,13 @@ public class QuotePDFGenerator {
         .forEach(
             item -> {
               itemTable.addCell(createItemCell(item.getItemName(), bgColor, font));
-              itemTable.addCell(createItemCell(item.getDescription(), bgColor, font));
+              itemTable.addCell(
+                  createItemCell(
+                      item.getDescription() + "\n(" + item.getHsnCode() + ")", bgColor, font));
               itemTable.addCell(
                   createItemCell(formatCurrency(item.getRate(), quoteEntity), bgColor, font));
               itemTable.addCell(createItemCell(String.valueOf(item.getQuantity()), bgColor, font));
+              itemTable.addCell(createItemCell(item.getTaxPercent() + "%", bgColor, font));
               itemTable.addCell(
                   createItemCell(formatCurrency(item.getTotal(), quoteEntity), bgColor, font));
             });
@@ -202,8 +215,31 @@ public class QuotePDFGenerator {
             .setMarginRight(30)
             .setMarginBottom(10);
 
+    document.add(totalParagraph);
+
+    document.add(new AreaBreak());
+
+    document.add(
+        new Paragraph("Terms & Conditions")
+            .setBold()
+            .setFontSize(14)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginBottom(20));
+
     Paragraph terms =
-        new Paragraph("Terms: Payment due within 30 days")
+        new Paragraph("1. Payment is due within 30 days from the date of invoice")
+            .setFontColor(new DeviceRgb(90, 90, 90))
+            .setFontSize(11)
+            .setTextAlignment(TextAlignment.LEFT)
+            .setMarginBottom(20);
+    Paragraph terms1 =
+        new Paragraph("2. Goods once sold will not be taken back or exchanged")
+            .setFontColor(new DeviceRgb(90, 90, 90))
+            .setFontSize(11)
+            .setTextAlignment(TextAlignment.LEFT)
+            .setMarginBottom(20);
+    Paragraph terms2 =
+        new Paragraph("3. Delivery shall be made within the agreed timeframe.")
             .setFontColor(new DeviceRgb(90, 90, 90))
             .setFontSize(11)
             .setTextAlignment(TextAlignment.LEFT)
@@ -211,8 +247,9 @@ public class QuotePDFGenerator {
 
     Div footer =
         new Div()
-            .add(totalParagraph)
             .add(terms)
+            .add(terms1)
+            .add(terms2)
             .setWidth(500)
             .setHorizontalAlignment(HorizontalAlignment.RIGHT);
 
@@ -263,5 +300,90 @@ public class QuotePDFGenerator {
         .setBackgroundColor(bgColor)
         .setBorder(Border.NO_BORDER)
         .setPadding(5);
+  }
+
+  public void addWatermark(PdfDocument pdfDoc, PdfFont font) {
+    int pageCount = pdfDoc.getNumberOfPages();
+
+    for (int i = 1; i <= pageCount; i++) {
+      PdfPage page = pdfDoc.getPage(i);
+      PdfCanvas canvas = new PdfCanvas(page);
+
+      float pageWidth = page.getPageSize().getWidth();
+      float pageHeight = page.getPageSize().getHeight();
+
+      canvas.saveState();
+      PdfExtGState gs1 = new PdfExtGState().setFillOpacity(0.08f);
+      canvas.setExtGState(gs1);
+
+      float textSize = 40;
+      canvas.setFontAndSize(font, textSize);
+      canvas.setFillColor(new DeviceRgb(150, 150, 150));
+
+      float centerX = pageWidth / 2;
+      float centerY = pageHeight / 2;
+
+      canvas.beginText();
+      canvas.setTextMatrix(
+          (float) Math.cos(Math.toRadians(45)),
+          (float) Math.sin(Math.toRadians(45)),
+          (float) -Math.sin(Math.toRadians(45)),
+          (float) Math.cos(Math.toRadians(45)),
+          centerX - (textSize * 2.2f),
+          centerY);
+      canvas.showText("Quote");
+      canvas.endText();
+
+      canvas.restoreState();
+    }
+  }
+
+  public void addSignature(Document document, PdfFont font) {
+    DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
+
+    document.add(new Paragraph("\n").setMarginBottom(5));
+
+    SolidLine line = new SolidLine(0.5f);
+    line.setColor(new DeviceRgb(200, 200, 200));
+    LineSeparator ls = new LineSeparator(line);
+    document.add(ls);
+
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    Paragraph signatureLine =
+        new Paragraph("Authorized Signature: _________________________")
+            .setFont(font)
+            .setMarginTop(10)
+            .setFontSize(9);
+    document.add(signatureLine);
+
+    Table footerTable =
+        new Table(UnitValue.createPercentArray(new float[] {50, 50}))
+            .useAllAvailableWidth()
+            .setMarginTop(8);
+
+    Cell dateCell =
+        new Cell()
+            .add(
+                new Paragraph("Generated on: " + dateFormat.format(new Date()))
+                    .setFont(font)
+                    .setFontSize(8))
+            .setBorder(Border.NO_BORDER);
+
+    Cell companyCell =
+        new Cell()
+            .add(
+                new Paragraph("PIXIVERSE")
+                    .setFont(font)
+                    .setBold()
+                    .setFontSize(10)
+                    .setFontColor(primaryColor))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER);
+
+    footerTable.addCell(dateCell);
+    footerTable.addCell(companyCell);
+
+    document.add(footerTable);
   }
 }

@@ -8,19 +8,22 @@ import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
+import com.itextpdf.kernel.pdf.extgstate.PdfExtGState;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.Div;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
@@ -49,11 +52,13 @@ public class InvoicePdfGeneration {
 
     mainContainer.add(createTotalAndTermsSection(invoiceEntity, font));
 
-    mainContainer.add(createTotalAmountBox(invoiceEntity, font));
-
-    mainContainer.add(createFooter(font));
+    mainContainer.add(createTotalAmountAndFooterSection(invoiceEntity, font));
 
     document.add(mainContainer);
+
+    addTermsAndConditionsPage(document, font);
+    addWatermark(pdf, font);
+
     document.close();
     return new ByteArrayInputStream(outputStream.toByteArray());
   }
@@ -143,25 +148,26 @@ public class InvoicePdfGeneration {
 
   private Table createItemsTable(InvoiceEntity invoiceEntity, PdfFont font) {
     Table table =
-        new Table(new float[] {2, 2, 2, 1, 2, 2, 2})
+        new Table(new float[] {2, 2, 1, 2, 2, 2})
             .setWidth(UnitValue.createPercentValue(100))
-            .setBorder(new SolidBorder(1));
+            .setBorder(new SolidBorder(1))
+            .setTextAlignment(TextAlignment.CENTER);
 
-    Stream.of("Item Name", "Description", "HSN Code", "QTY", "Rate", "Tax", "Amount")
+    Stream.of("Item Name", "Description", "QTY", "Rate", "Tax", "Amount")
         .forEach(
             header ->
                 table.addCell(
                     new Cell()
                         .setBackgroundColor(ColorConstants.LIGHT_GRAY)
-                        .add(new Paragraph(header).setFont(font))));
+                        .add(new Paragraph(header).setFont(font))
+                        .setTextAlignment(TextAlignment.CENTER)));
 
     for (ItemEntity item : invoiceEntity.getPurchaseOrder().getQuote().getItems()) {
       addRow(
           table,
           font,
           item.getItemName(),
-          item.getDescription(),
-          item.getHsnCode(),
+          item.getDescription() + "  (" + item.getHsnCode() + ")",
           String.valueOf(item.getQuantity()),
           invoiceEntity.getPurchaseOrder().getQuote().getCurrency() + item.getRate(),
           item.getTaxPercent() + "%",
@@ -171,97 +177,94 @@ public class InvoicePdfGeneration {
   }
 
   private Table createTotalAndTermsSection(InvoiceEntity invoiceEntity, PdfFont font) {
-    Table table = new Table(2).setWidth(UnitValue.createPercentValue(100));
+    Table table =
+        new Table(new float[] {2, 2})
+            .setWidth(UnitValue.createPercentValue(100)); // 2 equal columns
 
     double taxPercentage = (invoiceEntity.getTaxAmount() / invoiceEntity.getTotalAmount()) * 100;
 
-    Div totalDiv =
-        new Div()
-            .add(
-                new Paragraph("Tax Percentage: " + String.format("%.2f", taxPercentage) + "%")
-                    .setFont(font))
+    addLabelValueRow(table, font, "Status", String.valueOf(invoiceEntity.getPaymentStatus()));
+    addLabelValueRow(table, font, "Tax Percentage", String.format("%.2f", taxPercentage) + "%");
+    addLabelValueRow(
+        table,
+        font,
+        "Balance Received",
+        invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
+            + String.format(
+                "%.2f", (invoiceEntity.getTotalAmount() - invoiceEntity.getDueAmount())));
+    addLabelValueRow(
+        table,
+        font,
+        "Balance Due",
+        invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
+            + String.format("%.2f", invoiceEntity.getDueAmount()));
+
+    // Grand Total row (styled)
+    Cell grandTotalLabel =
+        new Cell()
+            .add(new Paragraph("Grand Total").setFont(font).setBold())
+            .setBackgroundColor(DARK_BLUE)
+            .setFontColor(ColorConstants.WHITE)
+            .setBorder(new SolidBorder(1));
+
+    Cell grandTotalValue =
+        new Cell()
             .add(
                 new Paragraph(
-                        "Balance Received: "
-                            + invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
-                            + (invoiceEntity.getTotalAmount() - invoiceEntity.getDueAmount()))
-                    .setFont(font))
-            .add(
-                new Paragraph(
-                        "Balance Due: "
-                            + invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
-                            + invoiceEntity.getDueAmount())
-                    .setFont(font))
-            .add(
-                new Paragraph(
-                        "Grand Total: "
-                            + invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
-                            + invoiceEntity.getTotalAmount())
-                    .setBold()
-                    .setBackgroundColor(DARK_BLUE)
-                    .setFontColor(ColorConstants.WHITE)
+                        invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
+                            + String.format("%.2f", invoiceEntity.getTotalAmount()))
                     .setFont(font)
-                    .setBorder(new SolidBorder(1)));
+                    .setBold())
+            .setBackgroundColor(DARK_BLUE)
+            .setFontColor(ColorConstants.WHITE)
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(new SolidBorder(1));
 
-    Cell totalCell = new Cell().add(totalDiv).setBorderRight(new SolidBorder(1));
+    table.addCell(grandTotalLabel);
+    table.addCell(grandTotalValue);
 
-    // Terms & Conditions
-    Div termsDiv =
-        new Div()
-            .setPadding(1)
-            .add(new Paragraph("Terms & conditions").setBold())
-            .add(
-                new Paragraph("1. Payment is due within 30 days from the date of invoice.")
-                    .setFont(font))
-            .add(
-                new Paragraph("2. Goods once sold will not be taken back or exchanged.")
-                    .setFont(font))
-            .add(
-                new Paragraph("3. Delivery shall be made within the agreed timeframe.")
-                    .setFont(font));
-
-    Cell termsCell =
-        new Cell().add(termsDiv).setBackgroundColor(LIGHT_BLUE).setBorderLeft(new SolidBorder(1));
-
-    table.addCell(termsCell);
-    table.addCell(totalCell);
     return table;
   }
 
-  private Div createTotalAmountBox(InvoiceEntity invoiceEntity, PdfFont font) throws IOException {
-    return new Div()
-        .add(
-            new Paragraph(
-                    "Total Amount - In Words: "
-                        + invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
-                        + " "
-                        + convertToWords(invoiceEntity.getTotalAmount().intValue()))
-                .setFontSize(12)
-                .setFont(font))
-        .setBorder(new SolidBorder(1))
-        .setFont(font)
-        .setBackgroundColor(ColorConstants.LIGHT_GRAY)
-        .setPadding(10);
+  private void addLabelValueRow(Table table, PdfFont font, String label, String value) {
+    Cell labelCell =
+        new Cell().add(new Paragraph(label).setFont(font)).setBorder(new SolidBorder(1));
+
+    Cell valueCell =
+        new Cell()
+            .add(new Paragraph(value).setFont(font))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(new SolidBorder(1));
+
+    table.addCell(labelCell);
+    table.addCell(valueCell);
   }
 
-  private Table createFooter(PdfFont font) {
-    Table footerTable = new Table(2).setWidth(UnitValue.createPercentValue(100));
+  private Table createTotalAmountAndFooterSection(InvoiceEntity invoiceEntity, PdfFont font)
+      throws IOException {
 
-    Cell businessCell =
-        new Cell()
-            .add(new Paragraph("For: Business Name").setFontSize(12).setPadding(20))
-            .setBorder(Border.NO_BORDER)
-            .setFont(font);
+    Table outerTable = new Table(1).setWidth(UnitValue.createPercentValue(100));
+    Div totalAmountDiv =
+        new Div()
+            .add(
+                new Paragraph(
+                        "Total Amount - In Words: "
+                            + invoiceEntity.getPurchaseOrder().getQuote().getCurrency()
+                            + " "
+                            + convertToWords(invoiceEntity.getTotalAmount().intValue()))
+                    .setFontSize(12)
+                    .setFont(font))
+            .setBorder(new SolidBorder(1))
+            .setFont(font)
+            .setBackgroundColor(ColorConstants.LIGHT_GRAY)
+            .setPadding(10);
 
-    Cell signatureCell =
-        new Cell()
-            .add(new Paragraph("Authorised Signature").setFontSize(12).setPadding(20))
-            .setBorder(Border.NO_BORDER)
-            .setFont(font);
+    Cell totalAmountCell =
+        new Cell().add(totalAmountDiv).setBorder(Border.NO_BORDER); // no extra border outside div
 
-    footerTable.addCell(businessCell);
-    footerTable.addCell(signatureCell);
-    return footerTable;
+    outerTable.addCell(totalAmountCell);
+
+    return outerTable;
   }
 
   //    Helper Methods
@@ -280,7 +283,7 @@ public class InvoicePdfGeneration {
 
   private void addRow(Table table, PdfFont font, String... cells) {
     for (String cell : cells) {
-      table.addCell(new Cell().add(new Paragraph(cell).setFont(font)));
+      table.addCell(new Cell().add(new Paragraph(cell).setFont(font))).setPadding(1);
     }
   }
 
@@ -363,6 +366,71 @@ public class InvoicePdfGeneration {
     return convertToWordsRec(n, values, words);
   }
 
+  private void addTermsAndConditionsPage(Document document, PdfFont font) {
+    document.add(new AreaBreak()); // Adds a new page
+
+    document.add(
+        new Paragraph("Terms & Conditions")
+            .setBold()
+            .setFontSize(14)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginBottom(20));
+
+    document.add(
+        new Paragraph("1. Payment is due within 30 days from the date of invoice.").setFont(font));
+    document.add(
+        new Paragraph("2. Goods once sold will not be taken back or exchanged.").setFont(font));
+    document.add(
+        new Paragraph("3. Delivery shall be made within the agreed timeframe.").setFont(font));
+
+    DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
+
+    document.add(new Paragraph("\n").setMarginBottom(5));
+
+    SolidLine line = new SolidLine(0.5f);
+    line.setColor(new DeviceRgb(200, 200, 200));
+    LineSeparator ls = new LineSeparator(line);
+    document.add(ls);
+
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    Paragraph signatureLine =
+        new Paragraph("Authorized Signature: _________________________")
+            .setFont(font)
+            .setMarginTop(10)
+            .setFontSize(9);
+    document.add(signatureLine);
+
+    Table footerTable =
+        new Table(UnitValue.createPercentArray(new float[] {50, 50}))
+            .useAllAvailableWidth()
+            .setMarginTop(8);
+
+    Cell dateCell =
+        new Cell()
+            .add(
+                new Paragraph("Generated on: " + dateFormat.format(new Date()))
+                    .setFont(font)
+                    .setFontSize(8))
+            .setBorder(Border.NO_BORDER);
+
+    Cell companyCell =
+        new Cell()
+            .add(
+                new Paragraph("PIXIVERSE")
+                    .setFont(font)
+                    .setBold()
+                    .setFontSize(10)
+                    .setFontColor(primaryColor))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER);
+
+    footerTable.addCell(dateCell);
+    footerTable.addCell(companyCell);
+
+    document.add(footerTable);
+  }
+
   private String convertToWordsRec(int n, int[] values, String[] words) {
     String res = "";
 
@@ -383,5 +451,41 @@ public class InvoicePdfGeneration {
     }
 
     return res;
+  }
+
+  public void addWatermark(PdfDocument pdfDoc, PdfFont font) {
+    int pageCount = pdfDoc.getNumberOfPages();
+
+    for (int i = 1; i <= pageCount; i++) {
+      PdfPage page = pdfDoc.getPage(i);
+      PdfCanvas canvas = new PdfCanvas(page);
+
+      float pageWidth = page.getPageSize().getWidth();
+      float pageHeight = page.getPageSize().getHeight();
+
+      canvas.saveState();
+      PdfExtGState gs1 = new PdfExtGState().setFillOpacity(0.08f);
+      canvas.setExtGState(gs1);
+
+      float textSize = 40;
+      canvas.setFontAndSize(font, textSize);
+      canvas.setFillColor(new DeviceRgb(150, 150, 150));
+
+      float centerX = pageWidth / 2;
+      float centerY = pageHeight / 2;
+
+      canvas.beginText();
+      canvas.setTextMatrix(
+          (float) Math.cos(Math.toRadians(45)),
+          (float) Math.sin(Math.toRadians(45)),
+          (float) -Math.sin(Math.toRadians(45)),
+          (float) Math.cos(Math.toRadians(45)),
+          centerX - (textSize * 2.2f),
+          centerY);
+      canvas.showText("Invoice");
+      canvas.endText();
+
+      canvas.restoreState();
+    }
   }
 }

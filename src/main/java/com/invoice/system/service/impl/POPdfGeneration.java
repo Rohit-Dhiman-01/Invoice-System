@@ -2,7 +2,6 @@ package com.invoice.system.service.impl;
 
 import com.invoice.system.dto.PurchaseOrderResponse;
 import com.invoice.system.model.ItemEntity;
-import com.invoice.system.model.PurchaseOrderStatus;
 import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -16,10 +15,7 @@ import com.itextpdf.kernel.pdf.extgstate.PdfExtGState;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.LineSeparator;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import java.io.IOException;
@@ -36,11 +32,6 @@ public class POPdfGeneration {
   public void addWatermark(PdfDocument pdfDoc, PurchaseOrderResponse purchaseOrder) {
     PdfFont font = loadUnicodeFont();
     int pageCount = pdfDoc.getNumberOfPages();
-
-    String watermarkText =
-        purchaseOrder.getStatus() == PurchaseOrderStatus.APPROVED
-            ? "APPROVED - PIXIVERSE"
-            : "DRAFT - PIXIVERSE";
 
     for (int i = 1; i <= pageCount; i++) {
       PdfPage page = pdfDoc.getPage(i);
@@ -68,7 +59,7 @@ public class POPdfGeneration {
           (float) Math.cos(Math.toRadians(45)),
           centerX - (textSize * 2.2f),
           centerY);
-      canvas.showText(watermarkText);
+      canvas.showText("Purchase Order");
       canvas.endText();
 
       canvas.restoreState();
@@ -84,8 +75,10 @@ public class POPdfGeneration {
     document.add(new Paragraph("\n").setMarginBottom(5));
     addItemsTable(document, purchaseOrder, font);
     document.add(new Paragraph("\n").setMarginBottom(5));
-    addSummarySection(document, purchaseOrder, font);
+    addTotalsSection(document, purchaseOrder, font);
     document.add(new Paragraph("\n").setMarginBottom(5));
+    document.add(new AreaBreak()); // Start new page for Terms & Conditions
+    addTermsAndConditions(document, font);
     addFooter(document, font);
   }
 
@@ -166,18 +159,6 @@ public class POPdfGeneration {
     poDetailsTable.addCell(createDetailLabelCell("PO Date:", font));
     poDetailsTable.addCell(
         createDetailValueCell(String.valueOf(purchaseOrder.getPoDate()), false, font));
-
-    poDetailsTable.addCell(createDetailLabelCell("Status:", font));
-    Cell statusCell = createDetailValueCell(String.valueOf(purchaseOrder.getStatus()), true, font);
-    if ("APPROVED".equals(String.valueOf(purchaseOrder.getStatus()))) {
-      statusCell.setFontColor(ColorConstants.GREEN);
-    } else if ("PENDING".equals(String.valueOf(purchaseOrder.getStatus()))) {
-      statusCell.setFontColor(new DeviceRgb(255, 165, 0));
-    } else {
-      statusCell.setFontColor(ColorConstants.RED);
-    }
-    poDetailsTable.addCell(statusCell);
-
     leftColumn.addCell(new Cell().add(poDetailsTable).setBorder(Border.NO_BORDER));
 
     Table rightColumn =
@@ -223,10 +204,11 @@ public class POPdfGeneration {
     DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
 
     Table itemsTable =
-        new Table(UnitValue.createPercentArray(new float[] {5, 22, 32, 7, 8, 8, 8, 10}))
+        new Table(UnitValue.createPercentArray(new float[] {5, 15, 32, 7, 8, 8, 10}))
             .useAllAvailableWidth()
-            .setMarginTop(8)
-            .setMarginBottom(8)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginTop(7)
+            .setMarginBottom(7)
             .setBorder(new SolidBorder(new DeviceRgb(200, 200, 200), 0.5f));
 
     itemsTable.addHeaderCell(createHeaderCell("No.", primaryColor, font));
@@ -234,7 +216,7 @@ public class POPdfGeneration {
     itemsTable.addHeaderCell(createHeaderCell("Description", primaryColor, font));
     itemsTable.addHeaderCell(createHeaderCell("Qty", primaryColor, font));
     itemsTable.addHeaderCell(createHeaderCell("Rate", primaryColor, font));
-    itemsTable.addHeaderCell(createHeaderCell("HSN Code", primaryColor, font));
+    //    itemsTable.addHeaderCell(createHeaderCell("HSN Code", primaryColor, font));
     itemsTable.addHeaderCell(createHeaderCell("Tax %", primaryColor, font));
     itemsTable.addHeaderCell(createHeaderCell("Total", primaryColor, font));
 
@@ -243,14 +225,15 @@ public class POPdfGeneration {
     for (ItemEntity item : purchaseOrder.getItems()) {
       itemsTable.addCell(createCell(String.valueOf(index++), alternateRow, font));
       itemsTable.addCell(createCell(item.getItemName(), alternateRow, font));
-      itemsTable.addCell(createCell(item.getDescription(), alternateRow, font));
+      itemsTable.addCell(
+          createCell(item.getDescription() + "\n(" + item.getHsnCode() + ")", alternateRow, font));
       itemsTable.addCell(createCell(String.valueOf(item.getQuantity()), alternateRow, font, true));
       itemsTable.addCell(
           createCell(
               purchaseOrder.getCurrency() + DECIMAL_FORMAT.format(item.getRate()),
               alternateRow,
               font));
-      itemsTable.addCell(createCell(item.getHsnCode(), alternateRow, font));
+      //      itemsTable.addCell(createCell(item.getHsnCode(), alternateRow, font));
       itemsTable.addCell(createCell(item.getTaxPercent() + "%", alternateRow, font));
       itemsTable.addCell(
           createCell(
@@ -296,109 +279,6 @@ public class POPdfGeneration {
 
   public Cell createCell(String text, boolean alternate, PdfFont font) {
     return createCell(text, alternate, font, false);
-  }
-
-  public void addSummarySection(
-      Document document, PurchaseOrderResponse purchaseOrder, PdfFont font) {
-    DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
-
-    Table summaryLayout =
-        new Table(UnitValue.createPercentArray(new float[] {60, 40}))
-            .useAllAvailableWidth()
-            .setMarginTop(8);
-
-    Cell termsCell = new Cell().setBorder(Border.NO_BORDER);
-    termsCell.add(new Paragraph("Terms and Conditions:").setFont(font).setBold().setFontSize(9));
-    termsCell.add(
-        new Paragraph("1. Payment is due within 30 days from the date of invoice.")
-            .setFont(font)
-            .setFontSize(8));
-    termsCell.add(
-        new Paragraph("2. Goods once sold will not be taken back or exchanged.")
-            .setFont(font)
-            .setFontSize(8));
-    termsCell.add(
-        new Paragraph("3. Delivery shall be made within the agreed timeframe.")
-            .setFont(font)
-            .setFontSize(8));
-
-    Cell totalsCell = new Cell().setBorder(Border.NO_BORDER);
-    Table totalsTable =
-        new Table(UnitValue.createPercentArray(new float[] {60, 40}))
-            .useAllAvailableWidth()
-            .setMarginLeft(15);
-
-    totalsTable.addCell(
-        new Cell()
-            .add(new Paragraph("Subtotal").setFont(font).setBold().setFontSize(9))
-            .setTextAlignment(TextAlignment.RIGHT)
-            .setBorder(Border.NO_BORDER)
-            .setPadding(3));
-    totalsTable.addCell(
-        new Cell()
-            .add(
-                new Paragraph(
-                        purchaseOrder.getCurrency()
-                            + DECIMAL_FORMAT.format(purchaseOrder.getSubTotal()))
-                    .setFont(font)
-                    .setFontSize(9))
-            .setTextAlignment(TextAlignment.RIGHT)
-            .setBorder(Border.NO_BORDER)
-            .setPadding(3));
-
-    totalsTable.addCell(
-        new Cell()
-            .add(new Paragraph("Tax Amount").setFont(font).setBold().setFontSize(9))
-            .setTextAlignment(TextAlignment.RIGHT)
-            .setBorder(Border.NO_BORDER)
-            .setPadding(3));
-    totalsTable.addCell(
-        new Cell()
-            .add(
-                new Paragraph(
-                        purchaseOrder.getCurrency()
-                            + DECIMAL_FORMAT.format(purchaseOrder.getTaxAmount()))
-                    .setFont(font)
-                    .setFontSize(9))
-            .setTextAlignment(TextAlignment.RIGHT)
-            .setBorder(Border.NO_BORDER)
-            .setPadding(3));
-
-    Cell separatorCell =
-        new Cell(1, 2)
-            .setBorderBottom(new SolidBorder(primaryColor, 1f))
-            .setBorderTop(Border.NO_BORDER)
-            .setBorderLeft(Border.NO_BORDER)
-            .setBorderRight(Border.NO_BORDER)
-            .setHeight(10);
-    totalsTable.addCell(separatorCell);
-
-    totalsTable.addCell(
-        new Cell()
-            .add(new Paragraph("Total Amount").setFont(font).setBold().setFontSize(10))
-            .setTextAlignment(TextAlignment.RIGHT)
-            .setBackgroundColor(new DeviceRgb(230, 230, 230))
-            .setBorder(Border.NO_BORDER)
-            .setPadding(4));
-    totalsTable.addCell(
-        new Cell()
-            .add(
-                new Paragraph(
-                        purchaseOrder.getCurrency()
-                            + DECIMAL_FORMAT.format(purchaseOrder.getTotalAmount()))
-                    .setFont(font)
-                    .setBold()
-                    .setFontSize(10))
-            .setTextAlignment(TextAlignment.RIGHT)
-            .setBackgroundColor(new DeviceRgb(230, 230, 230))
-            .setBorder(Border.NO_BORDER)
-            .setPadding(4));
-
-    totalsCell.add(totalsTable);
-    summaryLayout.addCell(termsCell);
-    summaryLayout.addCell(totalsCell);
-
-    document.add(summaryLayout);
   }
 
   public void addFooter(Document document, PdfFont font) {
@@ -448,6 +328,123 @@ public class POPdfGeneration {
     footerTable.addCell(companyCell);
 
     document.add(footerTable);
+  }
+
+  public void addTotalsSection(
+      Document document, PurchaseOrderResponse purchaseOrder, PdfFont font) {
+    DeviceRgb primaryColor = new DeviceRgb(25, 55, 95);
+
+    Table summaryLayout =
+        new Table(UnitValue.createPercentArray(new float[] {100}))
+            .useAllAvailableWidth()
+            .setMarginTop(8);
+
+    Table totalsTable =
+        new Table(UnitValue.createPercentArray(new float[] {60, 40}))
+            .useAllAvailableWidth()
+            .setMarginLeft(15);
+
+    totalsTable.addCell(
+        new Cell()
+            .add(new Paragraph("Subtotal").setFont(font).setBold().setFontSize(9))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER)
+            .setPadding(3));
+    totalsTable.addCell(
+        new Cell()
+            .add(
+                new Paragraph(
+                        purchaseOrder.getCurrency()
+                            + DECIMAL_FORMAT.format(purchaseOrder.getSubTotal()))
+                    .setFont(font)
+                    .setFontSize(9))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER)
+            .setPadding(3));
+
+    totalsTable.addCell(
+        new Cell()
+            .add(new Paragraph("Tax Amount").setFont(font).setBold().setFontSize(9))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER)
+            .setPadding(3));
+    totalsTable.addCell(
+        new Cell()
+            .add(
+                new Paragraph(
+                        purchaseOrder.getCurrency()
+                            + DECIMAL_FORMAT.format(purchaseOrder.getTaxAmount()))
+                    .setFont(font)
+                    .setFontSize(9))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER)
+            .setPadding(3));
+
+    DeviceRgb grayBackground = new DeviceRgb(230, 230, 230);
+    DeviceRgb lineColor = new DeviceRgb(50, 50, 50); // or your theme color
+
+    // Left cell (no background, no line)
+    Cell totalLabel =
+        new Cell()
+            .add(new Paragraph("Total Amount").setFont(font).setBold().setFontSize(10))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBorder(Border.NO_BORDER)
+            .setPadding(4);
+
+    // Right cell (background + top border only)
+    Cell totalValue =
+        new Cell()
+            .add(
+                new Paragraph(
+                        purchaseOrder.getCurrency()
+                            + DECIMAL_FORMAT.format(purchaseOrder.getTotalAmount()))
+                    .setFont(font)
+                    .setBold()
+                    .setFontSize(10))
+            .setTextAlignment(TextAlignment.RIGHT)
+            .setBackgroundColor(grayBackground)
+            .setBorderTop(new SolidBorder(lineColor, 1f)) // line only at top of this cell
+            .setBorderBottom(Border.NO_BORDER)
+            .setBorderLeft(Border.NO_BORDER)
+            .setBorderRight(Border.NO_BORDER)
+            .setPadding(4);
+
+    // Add cells to the totals table
+    totalsTable.addCell(totalLabel);
+    totalsTable.addCell(totalValue);
+
+    summaryLayout.addCell(new Cell().add(totalsTable).setBorder(Border.NO_BORDER));
+    document.add(summaryLayout);
+  }
+
+  public void addTermsAndConditions(Document document, PdfFont font) {
+    Paragraph heading =
+        new Paragraph("Terms and Conditions:")
+            .setFont(font)
+            .setBold()
+            .setFontSize(10)
+            .setMarginBottom(10);
+
+    Paragraph term1 =
+        new Paragraph("1. Payment is due within 30 days from the date of invoice.")
+            .setFont(font)
+            .setFontSize(9)
+            .setMarginBottom(5);
+    Paragraph term2 =
+        new Paragraph("2. Goods once sold will not be taken back or exchanged.")
+            .setFont(font)
+            .setFontSize(9)
+            .setMarginBottom(5);
+    Paragraph term3 =
+        new Paragraph("3. Delivery shall be made within the agreed timeframe.")
+            .setFont(font)
+            .setFontSize(9)
+            .setMarginBottom(5);
+
+    document.add(heading);
+    document.add(term1);
+    document.add(term2);
+    document.add(term3);
   }
 
   public static PdfFont loadUnicodeFont() {
